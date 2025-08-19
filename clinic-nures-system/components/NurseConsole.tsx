@@ -1,6 +1,25 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
+// ข้อมูลวินิจฉัยจากหมอและรายการยา
+interface DoctorDiagnosis {
+  caseId: string;
+  idCard: string;
+  name: string;
+  chief: string;
+  diagnosis: string;
+  medicines: Array<{
+    name: string;
+    dosage: string;
+    instructions: string;
+  }>;
+  notes?: string;
+  appointment?: {
+    id: string;
+    date: string;
+    room?: string;
+  };
+}
 // Type definitions
 interface Appointment {
   id: string;
@@ -114,14 +133,32 @@ function RangeFlag({ value, range, label }:{value:any, range:number[], label:str
 }
 
 async function getSupabase(){
-  try{
-    const url = (typeof process!=='undefined'&& (process as any).env?.NEXT_PUBLIC_SUPABASE_URL) || (typeof window!=='undefined'&& (window as any).SUPABASE_URL);
-    const key = (typeof process!=='undefined'&& (process as any).env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) || (typeof window!=='undefined'&& (window as any).SUPABASE_ANON_KEY);
-    if(!url || !key) return null;
+  try {
+    // Next.js จะ expose env ที่ขึ้นต้นด้วย NEXT_PUBLIC_ ไปที่ window.process.env
+    let url = '';
+    let key = '';
+    if (typeof window !== 'undefined' && window.process?.env) {
+      url = window.process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+      key = window.process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+    } else if (typeof process !== 'undefined' && process.env) {
+      url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+      key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+    }
+    // fallback: ลองอ่านจาก window ถ้า env ไม่เจอ
+    if (!url && typeof window !== 'undefined') {
+      url = (window as any).NEXT_PUBLIC_SUPABASE_URL || (window as any).SUPABASE_URL;
+    }
+    if (!key && typeof window !== 'undefined') {
+      key = (window as any).NEXT_PUBLIC_SUPABASE_ANON_KEY || (window as any).SUPABASE_ANON_KEY;
+    }
+    if (!url || !key) return null;
     const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
     const { createClient } = await import(SUPABASE_ESM);
     return createClient(url, key);
-  }catch(e){ console.warn('Supabase unavailable', e); return null; }
+  } catch (e) {
+    console.warn('Supabase unavailable', e);
+    return null;
+  }
 }
 
 function SelfTest({ queue }: { queue: any[] }){
@@ -147,7 +184,90 @@ function SelfTest({ queue }: { queue: any[] }){
 }
 
 export default function NurseConsole(){
-  // ...existing state declarations...
+  // ฟังก์ชันบันทึกผู้ใช้งานใหม่ลง Supabase
+  // ฟังก์ชันบันทึกผู้ใช้งานใหม่ลง Supabase (mapping schema ใหม่)
+  const handleRegisterPatient = async () => {
+    const sb = await getSupabase();
+    if (!sb) {
+      alert('เชื่อมต่อ Supabase ไม่สำเร็จ');
+      return;
+    }
+    // เตรียมข้อมูลสำหรับบันทึกให้ตรง schema
+    const data = {
+      hn: patient.hn || null,
+      name: `${patient.prefix || ''} ${patient.firstName || ''} ${patient.lastName || ''}`.trim(),
+      dob: patient.dob || null,
+      sex: patient.gender || null,
+      phone: patient.phone || null,
+      email: patient.email || null,
+      address: {
+        address: patient.address || '',
+        province: patient.province || '',
+        district: patient.district || ''
+      },
+      allergy: patient.allergies || '',
+      chronic: patient.pmh || ''
+    };
+    const { error } = await sb.from('patients').insert(data);
+    if (error) {
+      alert('บันทึกข้อมูลผู้ป่วยไม่สำเร็จ: ' + error.message);
+    } else {
+      alert('บันทึกข้อมูลผู้ป่วยสำเร็จ!');
+    }
+  };
+
+  // ตัวอย่าง SQL สำหรับสร้างข้อมูลใหม่ใน Supabase (ใช้ใน SQL Editor)
+  // INSERT INTO patients (hn, name, dob, sex, phone, email, address, allergy, chronic)
+  // VALUES ('HN001', 'นาย สมชาย ใจดี', '1990-01-01', 'male', '0812345678', 'test@example.com', '{"address": "123/4", "province": "กรุงเทพ", "district": "บางนา"}', 'Penicillin', 'เบาหวาน');
+  const [casesFromDoctor, setCasesFromDoctor] = useState<DoctorDiagnosis[]>([]);
+
+  const [casesSent, setCasesSent] = useState<DoctorDiagnosis[]>([]);
+  // โหลดเคสจากฐานข้อมูล Supabase
+  useEffect(() => {
+    const fetchCases = async () => {
+      const sb = await getSupabase();
+      if (!sb) return;
+      // ดึงเคสที่หมอส่งมา (ตัวอย่าง: table 'cases', status 'from_doctor')
+      const { data: fromDoctor, error: errFrom } = await sb.from('cases').select('*').eq('status', 'from_doctor');
+      if (!errFrom && fromDoctor) {
+        setCasesFromDoctor(fromDoctor.map((c: any) => ({
+          caseId: c.id,
+          idCard: c.id_card,
+          name: c.name,
+          chief: c.chief,
+          diagnosis: c.diagnosis,
+          medicines: c.medicines || [],
+          notes: c.notes,
+          appointment: c.appointment ? {
+            id: c.appointment.id,
+            date: c.appointment.date,
+            room: c.appointment.room
+          } : undefined
+        })));
+      }
+      const { data: sentCases, error: errSent } = await sb.from('cases').select('*').eq('status', 'sent');
+      if (!errSent && sentCases) {
+        setCasesSent(sentCases.map((c: any) => ({
+          caseId: c.id,
+          idCard: c.id_card,
+          name: c.name,
+          chief: c.chief,
+          diagnosis: c.diagnosis,
+          medicines: c.medicines || [],
+          notes: c.notes,
+          appointment: c.appointment ? {
+            id: c.appointment.id,
+            date: c.appointment.date,
+            room: c.appointment.room
+          } : undefined
+        })));
+      }
+    };
+    fetchCases();
+  }, []);
+
+  // เคสที่เลือกดูรายละเอียด
+  const [selectedCase, setSelectedCase] = useState<DoctorDiagnosis | null>(null);
   const [clientTime, setClientTime] = useState<string>("");
   const [queue,setQueue]=useState<QueueItem[]>([]);
   const [appointments,setAppointments]=useState<Appointment[]>([]);
@@ -492,6 +612,9 @@ export default function NurseConsole(){
                   <div><Label>โรคประจำตัว</Label><Input value={patient.pmh} onChange={e=>setPatient({...patient, pmh:e.target.value})} placeholder="โรคประจำตัว"/></div>
                   <div><Label>ผู้ติดต่อกรณีฉุกเฉิน</Label><Input value={patient.emergencyContact||''} onChange={e=>setPatient({...patient, emergencyContact:e.target.value})} placeholder="ชื่อผู้ติดต่อ"/></div>
                   <div><Label>เบอร์โทรผู้ติดต่อฉุกเฉิน</Label><Input value={patient.emergencyPhone||''} onChange={e=>setPatient({...patient, emergencyPhone:e.target.value})} placeholder="เบอร์โทรผู้ติดต่อ"/></div>
+                  <div className="md:col-span-2 mt-4">
+                    <Button className="bg-green-600 text-white w-full" onClick={handleRegisterPatient}>บันทึกข้อมูลผู้ป่วยใหม่</Button>
+                  </div>
                 </div>
               ) : (
                 <div className="grid text-black grid-cols-1 md:grid-cols-2 gap-4">
@@ -527,12 +650,6 @@ export default function NurseConsole(){
             <CardHeader><CardTitle><span className="flex items-center gap-2"><ClipboardPlus className="h-5 w-5"/> ฟอร์มตรวจเบื้องต้น</span></CardTitle></CardHeader>
             <CardContent>
               <Tabs defaultValue="triage" className="w-full">
-                <TabsList className="grid text-black grid-cols-3">
-                  <TabsTrigger value="triage" className="rounded-xl">คัดกรอง</TabsTrigger>
-                  <TabsTrigger value="vitals" className="rounded-xl">Vital Signs</TabsTrigger>
-                  <TabsTrigger value="note" className="rounded-xl">Nurse Note</TabsTrigger>
-                </TabsList>
-
                 <TabsContent value="triage" className="mt-4">
                   <div className="grid text-black grid-cols-1 md:grid-cols-2 gap-4">
                     <div><Label>Chief Complaint (อาการนำ)</Label><Input value={patient.chief} onChange={(e)=>setPatient({...patient,chief:e.target.value})} placeholder="เช่น ไอ/เจ็บคอ/มีไข้"/></div>
@@ -562,7 +679,7 @@ export default function NurseConsole(){
                     <div><Label>BMI (auto)</Label><Input value={bmiDerived} readOnly/></div>
                   </div>
                   <div className="mt-4">
-                    <Button className="bg-green-600 text-white" onClick={handleSaveVitals}>บันทึกข้อมูล Vital Signs ไป Supabase</Button>
+                    <Button className="bg-green-600 text-white" onClick={handleSaveVitals}>บันทึกข้อมูล</Button>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -614,7 +731,81 @@ export default function NurseConsole(){
           </Card>
         </div>
       </div>
-  <div className="mt-6 text-xs text-black"><p>Tab = สลับส่วนฟอร์ม • Ctrl/⌘+K = โฟกัสค้นหา • Enter = บันทึกฟิลด์</p></div>
+
+      {/* ส่วนแยกรายการเคสที่หมอส่งมา และเคสที่พยาบาลส่งไป */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold mb-4">เคสที่หมอส่งมา</h2>
+          <ul className="space-y-3">
+            {casesFromDoctor.map((c) => (
+              <li key={c.caseId}>
+                <button className="w-full text-left p-3 border rounded hover:bg-gray-50" onClick={()=>setSelectedCase(c)}>
+                  <div className="font-semibold">{c.name} ({c.caseId})</div>
+                  <div className="text-xs text-gray-600">รหัสบัตรประชาชน: {c.idCard}</div>
+                  <div className="text-sm">อาการ: {c.chief}</div>
+                  <div className="text-sm">วินิจฉัย: {c.diagnosis}</div>
+                  <div className="text-xs text-gray-500">{c.notes}</div>
+                  <div className="text-xs text-gray-500">นัด: {c.appointment ? `${c.appointment.date} (${c.appointment.room})` : '-'}</div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-bold mb-4">เคสที่ส่งต่อไปแล้ว</h2>
+          <ul className="space-y-3">
+            {casesSent.map((c) => (
+              <li key={c.caseId}>
+                <button className="w-full text-left p-3 border rounded hover:bg-gray-50" onClick={()=>setSelectedCase(c)}>
+                  <div className="font-semibold">{c.name} ({c.caseId})</div>
+                  <div className="text-xs text-gray-600">รหัสบัตรประชาชน: {c.idCard}</div>
+                  <div className="text-sm">อาการ: {c.chief}</div>
+                  <div className="text-sm">วินิจฉัย: {c.diagnosis}</div>
+                  <div className="text-xs text-gray-500">{c.notes}</div>
+                  <div className="text-xs text-gray-500">นัด: {c.appointment ? `${c.appointment.date} (${c.appointment.room})` : '-'}</div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Modal/Section แสดงรายละเอียดเคสที่เลือก */}
+      {selectedCase && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full relative">
+            <button className="absolute top-2 right-2 text-gray-500" onClick={()=>setSelectedCase(null)}>✕</button>
+            <h2 className="text-lg font-bold mb-2">รายละเอียดเคส</h2>
+            <div className="mb-2"><span className="font-semibold">Case ID:</span> {selectedCase.caseId}</div>
+            <div className="mb-2"><span className="font-semibold">ชื่อ:</span> {selectedCase.name}</div>
+            <div className="mb-2"><span className="font-semibold">รหัสบัตรประชาชน:</span> {selectedCase.idCard}</div>
+            <div className="mb-2"><span className="font-semibold">อาการ:</span> {selectedCase.chief}</div>
+            <div className="mb-2"><span className="font-semibold">วินิจฉัย:</span> {selectedCase.diagnosis}</div>
+            <div className="mb-2"><span className="font-semibold">คำแนะนำแพทย์:</span> {selectedCase.notes || "-"}</div>
+            <div className="mb-2"><span className="font-semibold">รายละเอียดการนัด:</span> {selectedCase.appointment ? `รหัส: ${selectedCase.appointment.id}, วันที่: ${selectedCase.appointment.date}, ห้อง: ${selectedCase.appointment.room || '-'}` : '-'}
+            </div>
+            <h3 className="font-semibold mt-4 mb-2">รายการยา</h3>
+            <table className="w-full border">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border px-2 py-1">ชื่อยา</th>
+                  <th className="border px-2 py-1">ขนาดยา</th>
+                  <th className="border px-2 py-1">วิธีใช้</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedCase.medicines.map((med, idx) => (
+                  <tr key={idx}>
+                    <td className="border px-2 py-1">{med.name}</td>
+                    <td className="border px-2 py-1">{med.dosage}</td>
+                    <td className="border px-2 py-1">{med.instructions}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
