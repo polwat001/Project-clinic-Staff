@@ -3,18 +3,11 @@ import { cn } from "@/lib/utils";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <input
-        className={cn(
-          "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500",
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
-Input.displayName = "Input";
+export default function Input(props: InputProps) {
+  return (
+    <input
+      {...props}
+      className="border-2 border-[#D9D9D9] rounded-[15px] px-6 py-3 w-full text-lg bg-[#F5F5F5] placeholder:text-[#B4AAAA]"
+    />
+  );
+}
