@@ -1,20 +1,31 @@
-import * as React from "react";
-import { cn } from "@/lib/utils";
+import React from "react";
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "secondary" | "accent";
+};
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <button
-        className={cn(
-          "inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
-Button.displayName = "Button";
+export function Button({ variant = "primary", ...props }: ButtonProps) {
+  const colorMap = {
+    primary: "var(--color-primary)",
+    secondary: "var(--color-secondary)",
+    accent: "var(--color-accent)",
+  };
+
+  return (
+    <button
+      {...props}
+      style={{
+        background: colorMap[variant],
+        color: variant === "secondary" ? "#222" : "#fff",
+        borderRadius: "var(--border-radius)",
+        padding: "8px 24px",
+        border: "none",
+        margin: "var(--spacing) 0",
+        fontFamily: "var(--font-family)",
+        cursor: "pointer",
+      }}
+    >
+      {props.children}
+    </button>
+  );
+}

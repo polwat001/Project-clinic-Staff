@@ -3,6 +3,15 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import PatientRegisterForm from "./nurse/PatientRegisterForm";
+import AppointmentList from "./nurse/AppointmentList";
+import QueueBoard from "./nurse/QueueBoard";
+import TriageForm from "./nurse/TriageForm";
+import SearchPatientSection from "./nurse/SearchPatientSection";
+import CaseHistorySection from "./nurse/CaseHistorySection";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
 
 interface DoctorDiagnosis {
   caseId: string;
@@ -86,21 +95,6 @@ interface Vitals {
   ht: string;
 }
 
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import {
-  ChevronRight, UserPlus, ScanLine, Activity, Stethoscope, ClipboardPlus,
-  Users, Clock, Thermometer, Gauge, AlertTriangle, Search, CalendarDays
-} from "lucide-react";
-
 const pad = (n: number) => n.toString().padStart(2, "0");
 const nowStr = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const todayISODate = () => new Date().toISOString().slice(0, 10);
@@ -162,7 +156,11 @@ function SelfTest({ queue }: { queue: any[] }) {
   );
 }
 
-export default function NurseConsole(){
+export default function NurseConsole() {
+  const [step, setStep] = useState(1);
+  const [patient, setPatient] = useState<any>({});
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+
   // ฟังก์ชันบันทึกผู้ใช้งานใหม่ลง Supabase
   const handleRegisterPatient = async () => {
     const sb = await getSupabase();
@@ -274,7 +272,7 @@ export default function NurseConsole(){
   }, []);
   const [selected,setSelected]=useState<QueueItem|null>(null);
   const [isWalkIn,setIsWalkIn]=useState<boolean>(false);
-  const [patient,setPatient]=useState<Patient>({
+  const [patientState,setPatientState]=useState<Patient>({
     hn:'', name:'', phone:'', dob:'', apptId:'',
     chief:'', allergies:'', pmh:'', meds:'', urgency:'P3',
     idCard:'', prefix:'', firstName:'', lastName:'', gender:'', address:'', province:'', district:'', rights:'', email:'', lineId:'', emergencyContact:'', emergencyPhone:'', additionalSymptom:''
@@ -283,11 +281,11 @@ export default function NurseConsole(){
   // โหลดข้อมูล vital signs จาก Supabase เมื่อกรอก HN
   useEffect(() => {
     const fetchVitals = async () => {
-      if (!patient.hn) return;
+      if (!patientState.hn) return;
       try {
         const sb = await getSupabase();
         if (!sb) return;
-        const { data, error } = await sb.from('vitals').select('*').eq('hn', patient.hn).order('id', { ascending: false }).limit(1);
+        const { data, error } = await sb.from('vitals').select('*').eq('hn', patientState.hn).order('id', { ascending: false }).limit(1);
         if (error) console.error('Vitals error:', error);
         if (data && data.length > 0) {
           const v = data[0];
@@ -307,7 +305,7 @@ export default function NurseConsole(){
       }
     };
     fetchVitals();
-  }, [patient.hn]);
+  }, [patientState.hn]);
   // ฟังก์ชันบันทึกข้อมูล vital signs ลง Supabase
   const handleSaveVitals = async () => {
     const sb = await getSupabase();
@@ -326,8 +324,8 @@ export default function NurseConsole(){
       weight_kg: parseOrNull(vitals.wt),                              
       height_cm: parseOrNull(vitals.ht),
       bmi: bmiDerived ? parseFloat(bmiDerived) : null,
-      hn: patient.hn,
-      name: patient.name
+      hn: patientState.hn,
+      name: patientState.name
     };
     const { error } = await sb.from('vitals').insert(data);
     if (error) {
@@ -394,7 +392,6 @@ export default function NurseConsole(){
     const sb = await getSupabase();
     if(sb) await sb.from('queues').update({ status: 'SKIPPED' }).eq('queue_no', qItem.q);
   };
-  // ...existing code...
  
   useEffect(()=>{ (async()=>{
     const sb = await getSupabase(); if(!sb) return;
@@ -417,7 +414,7 @@ export default function NurseConsole(){
     setIsWalkIn(false);
     const sel = { q: appt.id.replace('AP-','A'), type:'online', status:'ARRIVED', hn: appt.hn, name: appt.name, room: appt.room, apptId: appt.id, triage:'P3' };
     setSelected(sel); setQueue(q=>[{...sel,q:sel.q},...q]);
-    setPatient((p:any)=>({ ...p, hn: appt.hn, name: appt.name, apptId: appt.id, chief: appt.chief, allergies: (appt.flags||[]).join(', '), urgency:'P3' }));
+    setPatientState((p:any)=>({ ...p, hn: appt.hn, name: appt.name, apptId: appt.id, chief: appt.chief, allergies: (appt.flags||[]).join(', '), urgency:'P3' }));
 
     const sb = await getSupabase(); if(!sb) return;
     const { data: pat } = await sb.from('patients').select('id').eq('hn', appt.hn).maybeSingle();
@@ -431,23 +428,23 @@ export default function NurseConsole(){
     const code = nextWalkInCode(queue);
     const sel = { q: code, type:'walkin', status:'ARRIVED', hn:'', name:'', room:'Triage', apptId:null as any, triage:'P2' };
     setSelected(sel); setQueue(q=>[sel,...q]);
-    setPatient({ hn:'', name:'', phone:'', dob:'', apptId:'', chief:'', allergies:'', pmh:'', meds:'', urgency:'P2' });
+    setPatientState({ hn:'', name:'', phone:'', dob:'', apptId:'', chief:'', allergies:'', pmh:'', meds:'', urgency:'P2' });
     setVitals({ sys:'', dia:'', hr:'', rr:'', temp:'', spo2:'', wt:'', ht:'' });
     setNoteS(''); setNoteO(''); setNoteA('Stable'); setNoteP('ส่งต่อแพทย์');
     // จะสร้างผู้ป่วย/Encounter ในขั้นตอนส่งต่อเท่านั้น
   };
 
   const advanceToDoctor = async ()=>{
-    const required=[patient.urgency,vitals.sys,vitals.dia,vitals.hr,vitals.temp];
+    const required=[patientState.urgency,vitals.sys,vitals.dia,vitals.hr,vitals.temp];
 
     if(isWalkIn){
       const sb = await getSupabase();
-      if(sb && patient.hn){
-        const { data: exist } = await sb.from('patients').select('id').eq('hn', patient.hn).maybeSingle();
-        if(!exist && !patient.name){ alert('Walk-in ใหม่ต้องกรอกชื่ออย่างน้อย'); return; }
-      } else if(!patient.name){ alert('Walk-in ใหม่ต้องกรอกชื่ออย่างน้อย'); return; }
+      if(sb && patientState.hn){
+        const { data: exist } = await sb.from('patients').select('id').eq('hn', patientState.hn).maybeSingle();
+        if(!exist && !patientState.name){ alert('Walk-in ใหม่ต้องกรอกชื่ออย่างน้อย'); return; }
+      } else if(!patientState.name){ alert('Walk-in ใหม่ต้องกรอกชื่ออย่างน้อย'); return; }
     } else {
-      if(!patient.name){ alert('กรอกชื่อผู้ป่วย'); return; }
+      if(!patientState.name){ alert('กรอกชื่อผู้ป่วย'); return; }
     }
     if(required.some(x=>!x)){ alert('กรอกข้อมูลสำคัญให้ครบ (Urgency, BP, HR, Temp)'); return; }
 
@@ -458,18 +455,18 @@ export default function NurseConsole(){
 
     if(isWalkIn){
       let patient_id: string | null = null;
-      if(patient.hn){
-        const { data: exist } = await sb.from('patients').select('id').eq('hn', patient.hn).maybeSingle();
+      if(patientState.hn){
+        const { data: exist } = await sb.from('patients').select('id').eq('hn', patientState.hn).maybeSingle();
         if(exist) patient_id = exist.id;
       }
       if(!patient_id){
-        const { data: pIns } = await sb.from('patients').insert({ full_name: patient.name||'Walk-in', hn: patient.hn||null, phone: patient.phone||null, dob: patient.dob||null }).select('id').single();
+        const { data: pIns } = await sb.from('patients').insert({ full_name: patientState.name||'Walk-in', hn: patientState.hn||null, phone: patientState.phone||null, dob: patientState.dob||null }).select('id').single();
         patient_id = pIns?.id || null;
       }
-      const { data: enc } = await sb.from('encounters').insert({ patient_id, urgency: patient.urgency, status:'ARRIVED' }).select('id').single();
+      const { data: enc } = await sb.from('encounters').insert({ patient_id, urgency: patientState.urgency, status:'ARRIVED' }).select('id').single();
       encounter_id = enc?.id || null;
   if (!selected) { alert('กรุณาเลือกคิวก่อน'); return; }
-  await sb.from('queues').insert({ encounter_id, queue_no: selected.q, kind:'walkin', status:'IN_EXAM', room:'Triage', priority: patient.urgency==='P1'?1:patient.urgency==='P2'?2:3 });
+  await sb.from('queues').insert({ encounter_id, queue_no: selected.q, kind:'walkin', status:'IN_EXAM', room:'Triage', priority: patientState.urgency==='P1'?1:patientState.urgency==='P2'?2:3 });
     } else {
   if (!selected) { alert('กรุณาเลือกคิวก่อน'); return; }
   const { data: encRow } = await sb.from('queues').select('encounter_id').eq('queue_no', selected.q).maybeSingle();
@@ -479,7 +476,7 @@ export default function NurseConsole(){
 
     if(!encounter_id){ alert('ไม่พบ Encounter'); return; }
 
-    await sb.from('triage').upsert({ encounter_id, chief_complaint: patient.chief, allergies: patient.allergies, medications: patient.meds, pmh: patient.pmh, urgency: patient.urgency }, { onConflict: 'encounter_id' });
+    await sb.from('triage').upsert({ encounter_id, chief_complaint: patientState.chief, allergies: patientState.allergies, medications: patientState.meds, pmh: patientState.pmh, urgency: patientState.urgency }, { onConflict: 'encounter_id' });
     const parseOrNull = (x:any)=>{ const n=parseFloat(String(x)); return isNaN(n)?null:n; };
     await sb.from('vitals').insert({ encounter_id, sys:parseOrNull(vitals.sys), dia:parseOrNull(vitals.dia), hr:parseOrNull(vitals.hr), rr:parseOrNull(vitals.rr), temp_c:parseOrNull(vitals.temp), spo2:parseOrNull(vitals.spo2), weight_kg:parseOrNull(vitals.wt), height_cm:parseOrNull(vitals.ht), bmi: bmiDerived?parseFloat(bmiDerived):null });
     await sb.from('nurse_notes').insert({ encounter_id, s:noteS, o:noteO, a:noteA, p:noteP });
@@ -523,10 +520,10 @@ const generateHN = async () => {
 
 // เมื่อผู้ใช้กรอกข้อมูลใหม่และ HN ยังไม่ถูกสร้าง ให้สร้าง HN อัตโนมัติ
 useEffect(() => {
-  if ((isWalkIn || !patient.hn) && !patient.hn) {
-    generateHN().then(hn => setPatient(p => ({ ...p, hn })));
+  if ((isWalkIn || !patientState.hn) && !patientState.hn) {
+    generateHN().then(hn => setPatientState(p => ({ ...p, hn })));
   }
-}, [isWalkIn, patient.hn]);
+}, [isWalkIn, patientState.hn]);
 
   // เพิ่ม state สำหรับผู้ป่วยที่ลงทะเบียนแล้ว
 const [registeredPatients, setRegisteredPatients] = useState<Patient[]>([]);
@@ -560,7 +557,7 @@ const filteredRegisteredPatients = useMemo(() => {
 // ฟังก์ชันเลือกผู้ป่วยเก่าเพื่อสร้างนัดใหม่
 const handleSelectRegisteredPatient = (p: Patient) => {
   setSelectedRegisteredPatient(p);
-  setPatient({
+  setPatientState({
     ...patient,
     hn: p.hn,
     name: p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim(),
@@ -611,7 +608,7 @@ const handleCreateAppointmentForRegistered = async () => {
     alert('สร้างนัดสำเร็จ!');
     setAppointments(a => [...a, apptData]);
     setSelectedRegisteredPatient(null);
-    setPatient({
+    setPatientState({
       hn: '',
       name: '',
       phone: '',
@@ -641,559 +638,135 @@ const handleCreateAppointmentForRegistered = async () => {
 };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 p-6">
-      <Tabs defaultValue="register" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="register">ลงทะเบียนผู้ป่วยใหม่</TabsTrigger>
-          <TabsTrigger value="search">ค้นหาผู้ป่วยเก่า</TabsTrigger>
-          <TabsTrigger value="triage">ตรวจเบื้องต้น/ส่งต่อแพทย์</TabsTrigger>
-          <TabsTrigger value="cases">เคสย้อนหลัง</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="register">
-          {/* ฟอร์มลงทะเบียนผู้ป่วยใหม่ (นำโค้ดเดิมมาใส่ตรงนี้) */}
-          <div className="xl:col-span-1 text-black space-y-5">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle>
-                  <span className="flex items-center text-black gap-2">
-                    <Users className="h-5 w-5 "/> รายการนัดวันนี้ (Online)
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 mb-3">
-                  <Input
-                    placeholder="ค้นหา HN/ชื่อ/รหัสบัตรประชาชน/อาการ"
-                    value={searchText}
-                    onChange={e => setSearchText(e.target.value)}
-                  />
-                  <Button onClick={() => setSearchText(searchText)}>
-                    <Search className="h-4 w-4"/>
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {filteredAppointments.map((a)=> (
-                    <div key={a.id + '-' + a.hn} className="flex items-center justify-between rounded-xl border p-3 hover:bg-gray-50">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2 text-sm text-black">
-                          <Badge variant="outline" className="rounded-xl">{a.scheduled_at?.slice(11,16) ?? '-'}</Badge>
-                          <span className="font-medium text-black">{a.patient_name ?? a.name}</span>
-                          <span className="text-black">({a.hn})</span>
-                        </div>
-                        <div className="text-xs text-black mt-1">CC: {a.chief ?? a.chief_complaint}</div>
-                        {a.flags && <div className="flex gap-2 mt-1">{Array.isArray(a.flags) ? a.flags.map((f:string,i:number)=> (<Badge key={i} variant="destructive" className="rounded-xl">{f}</Badge>)) : null}</div>}
-                      </div>
-                      <Button onClick={()=>handleCheckInOnline(a)}>เช็คอิน <ChevronRight className="ml-1 h-4 w-4"/></Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm"><CardHeader><CardTitle><span className="flex items-center text-black gap-2"><Clock className="h-5 w-5"/> Queue Board</span></CardTitle></CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {queue.map((q)=> (
-                    <div key={q.q + '-' + (q.hn || '') + '-' + (q.type || '')} className={`flex items-center justify-between rounded-xl border p-3 ${selected?.q===q.q?'ring-2 ring-blue-500':''}`}>
-                      <div className="flex items-center gap-3">
-                        <Badge className="rounded-xl" variant={q.type==='walkin'?'default':'secondary'}>{q.q}</Badge>
-                        <div className="text-sm">
-                          <div className="font-medium text-black">{q.name} <span className="text-black">({q.hn||'-'})</span></div>
-                          <div className="text-xs text-black">{q.type==='walkin'?'Walk-in':'Online'} · {STATUS_LABELS[q.status]||q.status} · {q.room}</div>
-                        </div>
-                        <Badge variant={q.triage==='P1'?'destructive':q.triage==='P2'?'default':'outline'} className="rounded-xl">{q.triage}</Badge>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={()=>{ setSelected(q); setIsWalkIn(q.type==='walkin'); }}>เลือก</Button>
-                        <Button className="bg-yellow-100 text-yellow-800" onClick={()=>handleSkipQueue(q)}>ข้ามคิว</Button>
-                        <Button className="bg-red-100 text-red-800" onClick={()=>handleRemoveQueue(q)}>ลบ</Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <SelfTest queue={queue}/>
-          </div>
-
-          <div className="xl:col-span-2 space-y-6">
-            {/* ข้อมูลผู้ใช้ */}
-            <Card className="shadow-md text-black">
-              <CardHeader>
-                <CardTitle>
-                  <span className="flex items-center gap-2">
-                    <UserPlus className="h-5 w-5"/>
-                    {isWalkIn || !patient.hn ? 'ลงทะเบียนผู้ป่วยใหม่' : 'เช็คอินผู้ป่วยเก่า'}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isWalkIn || !patient.hn ? (
-                  <div className="grid text-black grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* New Patient Registration Form */}
-                    <div><Label>HN (สร้างอัตโนมัติ)</Label><Input value={patient.hn} readOnly placeholder="Auto-generated"/></div>
-                    <div><Label>เลขบัตรประชาชน / Passport / ID</Label><Input value={patient.idCard||''} onChange={e=>setPatient({...patient, idCard:e.target.value})} placeholder="เลขบัตรประชาชน หรือ Passport"/></div>
-                    <div><Label>คำนำหน้า</Label><Input value={patient.prefix||''} onChange={e=>setPatient({...patient, prefix:e.target.value})} placeholder="นาย/นาง/นางสาว"/></div>
-                    <div><Label>ชื่อ</Label><Input value={patient.firstName||''} onChange={e=>setPatient({...patient, firstName:e.target.value})} placeholder="ชื่อ"/></div>
-                    <div><Label>นามสกุล</Label><Input value={patient.lastName||''} onChange={e=>setPatient({...patient, lastName:e.target.value})} placeholder="นามสกุล"/></div>
-                    <div><Label>วันเดือนปีเกิด</Label><Input type="date" value={patient.dob} onChange={e=>setPatient({...patient, dob:e.target.value})}/></div>
-                    <div><Label>อายุ (คำนวณอัตโนมัติ)</Label><Input value={patient.dob ? `${Math.floor((new Date().getTime()-new Date(patient.dob).getTime())/31556952000)}` : ''} readOnly placeholder="Auto"/></div>
-                    <div><Label>เพศ</Label>
-                      <Select value={patient.gender||''} onValueChange={v=>setPatient({...patient, gender:v})}>
-                        <SelectItem value="male">ชาย</SelectItem>
-                        <SelectItem value="female">หญิง</SelectItem>
-                        <SelectItem value="other">อื่น ๆ</SelectItem>
-                      </Select>
-                    </div>
-                    <div><Label>เบอร์โทรศัพท์</Label><Input value={patient.phone} onChange={e=>setPatient({...patient, phone:e.target.value})} placeholder="081-xxx-xxxx"/></div>
-                    <div><Label>ที่อยู่</Label><Input value={patient.address||''} onChange={e=>setPatient({...patient, address:e.target.value})} placeholder="ที่อยู่"/></div>
-                    <div><Label>จังหวัด</Label><Input value={patient.province||''} onChange={e=>setPatient({...patient, province:e.target.value})} placeholder="จังหวัด"/></div>
-                    <div><Label>เขต/อำเภอ</Label><Input value={patient.district||''} onChange={e=>setPatient({...patient, district:e.target.value})} placeholder="เขต/อำเภอ"/></div>
-                    <div><Label>สิทธิการรักษา</Label>
-                      <Select value={patient.rights||''} onValueChange={v=>setPatient({...patient, rights:v})}>
-                        <SelectItem value="cash">เงินสด</SelectItem>
-                        <SelectItem value="social">ประกันสังคม</SelectItem>
-                        <SelectItem value="private">ประกันเอกชน</SelectItem>
-                      </Select>
-                    </div>
-                    <div><Label>อีเมล</Label><Input value={patient.email||''} onChange={e=>setPatient({...patient, email:e.target.value})} placeholder="อีเมล"/></div>
-                    <div><Label>LINE ID</Label><Input value={patient.lineId||''} onChange={e=>setPatient({...patient, lineId:e.target.value})} placeholder="LINE ID"/></div>
-                    <div><Label>ประวัติแพ้ยา</Label><Input value={patient.allergies} onChange={e=>setPatient({...patient, allergies:e.target.value})} placeholder="แพ้ยา"/></div>
-                    <div><Label>โรคประจำตัว</Label><Input value={patient.pmh} onChange={e=>setPatient({...patient, pmh:e.target.value})} placeholder="โรคประจำตัว"/></div>
-                    <div><Label>ผู้ติดต่อกรณีฉุกเฉิน</Label><Input value={patient.emergencyContact||''} onChange={e=>setPatient({...patient, emergencyContact:e.target.value})} placeholder="ชื่อผู้ติดต่อ"/></div>
-                    <div><Label>เบอร์โทรผู้ติดต่อฉุกเฉิน</Label><Input value={patient.emergencyPhone||''} onChange={e=>setPatient({...patient, emergencyPhone:e.target.value})} placeholder="เบอร์โทรผู้ติดต่อ"/></div>
-                    <div className="md:col-span-2 mt-4">
-                      <Button className="bg-green-600 text-white w-full" onClick={handleRegisterPatient}>บันทึกข้อมูลผู้ป่วยใหม่</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid text-black grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Existing Patient Check-in Form */}
-                    <div><Label>HN</Label><Input value={patient.hn} readOnly/></div>
-                    <div><Label>ชื่อ-นามสกุล</Label><Input value={patient.name} readOnly/></div>
-                    <div><Label>เบอร์โทร</Label><Input value={patient.phone} readOnly/></div>
-                    <div><Label>เหตุผลการมาพบแพทย์ / Chief Complaint</Label><Input value={patient.chief} onChange={e=>setPatient({...patient, chief:e.target.value})} placeholder="เช่น ไอ/เจ็บคอ/มีไข้"/></div>
-                    <div><Label>อาการสำคัญเพิ่มเติม</Label><Input value={patient.additionalSymptom||''} onChange={e=>setPatient({...patient, additionalSymptom:e.target.value})} placeholder="อาการเพิ่มเติม"/></div>
-                    <div><Label>อัปเดตแพ้ยา</Label><Input value={patient.allergies} onChange={e=>setPatient({...patient, allergies:e.target.value})} placeholder="แพ้ยา (ถ้ามีการเปลี่ยนแปลง)"/></div>
-                    <div><Label>อัปเดตโรคประจำตัว</Label><Input value={patient.pmh} onChange={e=>setPatient({...patient, pmh:e.target.value})} placeholder="โรคประจำตัว (ถ้ามีการเปลี่ยนแปลง)"/></div>
-                    <div><Label>สิทธิการรักษา</Label>
-                      <Select value={patient.rights||''} onValueChange={v=>setPatient({...patient, rights:v})}>
-                        <SelectItem value="cash">เงินสด</SelectItem>
-                        <SelectItem value="social">ประกันสังคม</SelectItem>
-                        <SelectItem value="private">ประกันเอกชน</SelectItem>
-                      </Select>
-                    </div>
-                    <div><Label>วิธีมา</Label>
-                      <Select value={isWalkIn ? 'walkin' : 'online'} onValueChange={v=>setIsWalkIn(v==='walkin')}>
-                        <SelectItem value="walkin">Walk-in</SelectItem>
-                        <SelectItem value="online">Online Appointment</SelectItem>
-                      </Select>
-                    </div>
-                    <div><Label>เวลานัด (ถ้ามี)</Label><Input value={patient.apptId} readOnly placeholder="AP-xxxx"/></div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* ตรวจเบื้องต้น */}
-            <Card className="shadow-md text-black">
-              <CardHeader><CardTitle><span className="flex items-center gap-2"><ClipboardPlus className="h-5 w-5"/> ฟอร์มตรวจเบื้องต้น</span></CardTitle></CardHeader>
-              <CardContent>
-                <Tabs defaultValue="triage" className="w-full">
-                  <TabsContent value="triage" className="mt-4">
-                    <div className="grid text-black grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label>Chief Complaint (อาการนำ)</Label><Input value={patient.chief} onChange={(e)=>setPatient({...patient,chief:e.target.value})} placeholder="เช่น ไอ/เจ็บคอ/มีไข้"/></div>
-                      <div><Label>ระดับความเร่งด่วน (Urgency)</Label>
-                        <Select value={patient.urgency} onValueChange={(v)=>setPatient({...patient,urgency:v})}>
-                          <SelectItem value="P1">P1 (ฉุกเฉิน)</SelectItem>
-                          <SelectItem value="P2">P2 (เร่งด่วน)</SelectItem>
-                          <SelectItem value="P3">P3 (ทั่วไป)</SelectItem>
-                        </Select>
-                      </div>
-                      <div><Label>Allergies (แพ้ยา/อาหาร)</Label><Input value={patient.allergies} onChange={(e)=>setPatient({...patient,allergies:e.target.value})} placeholder="เช่น Penicillin"/></div>
-                      <div><Label>Current Medications (ยาที่ใช้ประจำ)</Label><Input value={patient.meds} onChange={(e)=>setPatient({...patient,meds:e.target.value})} placeholder="ชื่อยา/ขนาดยา"/></div>
-                      <div className="md:col-span-2"><Label>Past Medical History (โรคประจำตัว)</Label><Input value={patient.pmh} onChange={(e)=>setPatient({...patient,pmh:e.target.value})} placeholder="DM/HT/CKD/หอบหืด ฯลฯ"/></div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="vitals" className="mt-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div><Label>BP Sys</Label><div className="flex items-center gap-2"><Input value={vitals.sys} onChange={(e)=>setVitals({...vitals,sys:e.target.value})} inputMode="numeric" placeholder="เช่น 120"/><Gauge className="h-4 w-4"/></div></div>
-                      <div><Label>BP Dia</Label><Input value={vitals.dia} onChange={(e)=>setVitals({...vitals,dia:e.target.value})} inputMode="numeric" placeholder="เช่น 80"/></div>
-                      <div><Label>Pulse (bpm)</Label><Input value={vitals.hr} onChange={(e)=>setVitals({...vitals,hr:e.target.value})} inputMode="numeric" placeholder="เช่น 80"/></div>
-                      <div><Label>Resp (/min)</Label><Input value={vitals.rr} onChange={(e)=>setVitals({...vitals,rr:e.target.value})} inputMode="numeric" placeholder="เช่น 18"/></div>
-                      <div><Label>Temp (°C)</Label><div className="flex items-center gap-2"><Input value={vitals.temp} onChange={(e)=>setVitals({...vitals,temp:e.target.value})} inputMode="numeric" placeholder="เช่น 36.7"/><Thermometer className="h-4 w-4"/></div></div>
-                      <div><Label>SpO₂ (%)</Label><div className="flex items-center gap-2"><Input value={vitals.spo2} onChange={(e)=>setVitals({...vitals,spo2:e.target.value})} inputMode="numeric" placeholder="เช่น 98"/><Activity className="h-4 w-4"/></div></div>
-                      <div><Label>Weight (kg)</Label><Input value={vitals.wt} onChange={(e)=>setVitals({...vitals,wt:e.target.value})} inputMode="numeric" placeholder="เช่น 72"/></div>
-                      <div><Label>Height (cm)</Label><Input value={vitals.ht} onChange={(e)=>setVitals({...vitals,ht:e.target.value})} inputMode="numeric" placeholder="เช่น 173"/></div>
-                      <div><Label>BMI (auto)</Label><Input value={bmiDerived} readOnly/></div>
-                    </div>
-                    <div className="mt-4">
-                      <Button className="bg-green-600 text-white" onClick={handleSaveVitals}>บันทึกข้อมูล</Button>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <RangeFlag label="SYS" value={vitals.sys?parseFloat(vitals.sys):''} range={ranges.bpSys}/>
-                      <RangeFlag label="DIA" value={vitals.dia?parseFloat(vitals.dia):''} range={ranges.bpDia}/>
-                      <RangeFlag label="HR" value={vitals.hr?parseFloat(vitals.hr):''} range={ranges.hr}/>
-                      <RangeFlag label="RR" value={vitals.rr?parseFloat(vitals.rr):''} range={ranges.rr}/>
-                      <RangeFlag label="TEMP" value={vitals.temp?parseFloat(vitals.temp):''} range={ranges.temp}/>
-                      <RangeFlag label="SpO₂" value={vitals.spo2?parseFloat(vitals.spo2):''} range={ranges.spo2}/>
-                      <RangeFlag label="BMI" value={bmiDerived?parseFloat(bmiDerived):''} range={ranges.bmi}/>
-                    </div>
-
-                    {flags.length>0 && (
-                      <Alert className="mt-4 border-red-300"><AlertTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4"/> พบค่าวัดผิดเกณฑ์</AlertTitle><AlertDescription className="text-sm">{flags.join(' · ')}</AlertDescription></Alert>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="note" className="mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <Label>S — Subjective</Label>
-                        <Textarea rows={4} value={noteS} onChange={(e)=>setNoteS(e.target.value)} placeholder="เช่น ไอแห้ง 2 วัน"/>
-                        <Label>O — Objective</Label>
-                        <Textarea rows={4} value={noteO} onChange={(e)=>setNoteO(e.target.value)} placeholder={`BP ${vitals.sys||'-'}/${vitals.dia||'-'}, HR ${vitals.hr||'-'}, Temp ${vitals.temp||'-'}`}/>
-                      </div>
-                      <div className="space-y-3">
-                        <Label>A — Assessment</Label>
-                        <Select value={noteA} onValueChange={setNoteA}>
-                          <SelectItem value="Stable">Stable</SelectItem>
-                          <SelectItem value="Need Doctor Now">Need Doctor Now</SelectItem>
-                          <SelectItem value="Observation">Observation</SelectItem>
-                        </Select>
-                        <Label>P — Plan</Label>
-                        <Textarea rows={6} value={noteP} onChange={(e)=>setNoteP(e.target.value)} placeholder="ส่งต่อแพทย์ / สั่ง Lab"/>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-
-                <Separator className="my-6"/>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-sm text-black"><ScanLine className="h-4 w-4"/> คิวปัจจุบัน: <span className="font-medium text-black">{selected?.q||'-'}</span><span className="mx-2">•</span><span className="text-black">อัปเดต: {clientTime}</span></div>
-                  <div className="flex items-center gap-2">
-                    <Button className="bg-gray-200 text-gray-800" onClick={handleQuickWalkIn}><UserPlus className="h-4 w-4 mr-1"/> Walk-in ใหม่</Button>
-                    <Button className="bg-blue-600 text-white" onClick={advanceToDoctor}>
-  <ChevronRight className="h-4 w-4 mr-1"/> ส่งต่อแพทย์
-</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        <TabsContent value="search">
-          {/* ส่วนค้นหา/เลือกผู้ป่วยเก่าและรับคิว Walk-in */}
-          <Card className="shadow-sm mb-4">
-        <CardHeader>
-          <CardTitle>
-            <span className="flex items-center gap-2">
-              <Users className="h-5 w-5" /> เลือกผู้ป่วยเก่าเพื่อรับคิว Walk-in
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 mb-3">
-            <Input
-              placeholder="ค้นหา HN/ชื่อ/รหัสบัตรประชาชน"
-              value={searchPatientText}
-              onChange={e => setSearchPatientText(e.target.value)}
-            />
-            <Button onClick={() => setSearchPatientText(searchPatientText)}>
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {filteredRegisteredPatients.map((p) => (
-              <div key={p.hn + '-' + (p.idCard || '')} className="flex items-center justify-between rounded-xl border p-3 hover:bg-gray-50">
-                <div>
-                  <div className="font-medium text-black">{p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim()} <span className="text-black">({p.hn})</span></div>
-                  <div className="text-xs text-black">ID: {p.idCard}</div>
-                  <div className="text-xs text-black">เบอร์: {p.phone}</div>
-                </div>
-                <Button onClick={() => {
-                  setSelectedRegisteredPatient(p);
-                  setIsWalkIn(true);
-                  setPatient({
-                    ...patient,
-                    hn: p.hn,
-                    name: p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-                    phone: p.phone,
-                    dob: p.dob,
-                    idCard: p.idCard,
-                    prefix: p.prefix,
-                    firstName: p.firstName,
-                    lastName: p.lastName,
-                    gender: p.gender,
-                    address: p.address,
-                    province: p.province,
-                    district: p.district,
-                    rights: p.rights,
-                    email: p.email,
-                    lineId: p.lineId,
-                    emergencyContact: p.emergencyContact,
-                    emergencyPhone: p.emergencyPhone,
-                    allergies: p.allergies,
-                    pmh: p.pmh,
-                    meds: p.meds,
-                    urgency: 'P3',
-                    apptId: '',
-                    chief: '',
-                    additionalSymptom: ''
-                  });
-                }}>เลือก</Button>
-              </div>
-            ))}
-          </div>
-          {selectedRegisteredPatient && isWalkIn && (
-            <div className="mt-4 p-4 border rounded bg-gray-50">
-              <div className="mb-2 font-semibold">สร้างเคส Walk-in สำหรับ: {selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ''} ${selectedRegisteredPatient.lastName || ''}`.trim()} ({selectedRegisteredPatient.hn})</div>
-              <div className="mb-2">
-                <Label>Chief Complaint</Label>
-                <Input value={patient.chief} onChange={e => setPatient({ ...patient, chief: e.target.value })} placeholder="เช่น ไอ/เจ็บคอ/มีไข้" />
-              </div>
-              <Button className="bg-blue-600 text-white mt-2" onClick={async () => {
-                // สร้าง Encounter และ Queue สำหรับ Walk-in
-                const sb = getSupabase();
-                if (!sb) return;
-                let patient_id: string | null = null;
-                const { data: exist } = await sb.from('patients').select('id').eq('hn', patient.hn).maybeSingle();
-                if (exist) patient_id = exist.id;
-                if (!patient_id) {
-                  const { data: pIns } = await sb.from('patients').insert({
-                    full_name: patient.name || 'Walk-in',
-                    hn: patient.hn || null,
-                    phone: patient.phone || null,
-                    dob: patient.dob || null
-                  }).select('id').single();
-                  patient_id = pIns?.id || null;
-                }
-                const { data: enc } = await sb.from('encounters').insert({
-                  patient_id,
-                  urgency: patient.urgency,
-                  status: 'ARRIVED'
-                }).select('id').single();
-                const encounter_id = enc?.id || null;
-                if (!encounter_id) {
-                  alert('ไม่พบ Encounter');
-                  return;
-                }
-                // สร้างคิวใหม่
-                const code = nextWalkInCode(queue);
-                await sb.from('queues').insert({
-                  encounter_id,
-                  queue_no: code,
-                  kind: 'walkin',
-                  status: 'ARRIVED',
-                  room: 'Triage',
-                  priority: patient.urgency === 'P1' ? 1 : patient.urgency === 'P2' ? 2 : 3
-                });
-                alert('รับคิว Walk-in สำเร็จ');
-                setSelectedRegisteredPatient(null);
-                setIsWalkIn(false);
-                setPatient({
-                  hn: '',
-                  name: '',
-                  phone: '',
-                  dob: '',
-                  apptId: '',
-                  chief: '',
-                  allergies: '',
-                  pmh: '',
-                  meds: '',
-                  urgency: 'P3',
-                  idCard: '',
-                  prefix: '',
-                  firstName: '',
-                  lastName: '',
-                  gender: '',
-                  address: '',
-                  province: '',
-                  district: '',
-                  rights: '',
-                  email: '',
-                  lineId: '',
-                  emergencyContact: '',
-                  emergencyPhone: '',
-                  additionalSymptom: ''
-                });
-                handleRefreshQueue();
-              }}>
-                รับคิว Walk-in
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-        </TabsContent>
-        <TabsContent value="triage">
-          {/* ฟอร์มตรวจเบื้องต้น/ส่งต่อแพทย์ */}
-          <Card className="shadow-md text-black">
-            <CardHeader><CardTitle><span className="flex items-center gap-2"><ClipboardPlus className="h-5 w-5"/> ฟอร์มตรวจเบื้องต้น</span></CardTitle></CardHeader>
-            <CardContent>
-              <Tabs defaultValue="triage" className="w-full">
-                <TabsContent value="triage" className="mt-4">
-                  <div className="grid text-black grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><Label>Chief Complaint (อาการนำ)</Label><Input value={patient.chief} onChange={(e)=>setPatient({...patient,chief:e.target.value})} placeholder="เช่น ไอ/เจ็บคอ/มีไข้"/></div>
-                    <div><Label>ระดับความเร่งด่วน (Urgency)</Label>
-                      <Select value={patient.urgency} onValueChange={(v)=>setPatient({...patient,urgency:v})}>
-                        <SelectItem value="P1">P1 (ฉุกเฉิน)</SelectItem>
-                        <SelectItem value="P2">P2 (เร่งด่วน)</SelectItem>
-                        <SelectItem value="P3">P3 (ทั่วไป)</SelectItem>
-                      </Select>
-                    </div>
-                    <div><Label>Allergies (แพ้ยา/อาหาร)</Label><Input value={patient.allergies} onChange={(e)=>setPatient({...patient,allergies:e.target.value})} placeholder="เช่น Penicillin"/></div>
-                    <div><Label>Current Medications (ยาที่ใช้ประจำ)</Label><Input value={patient.meds} onChange={(e)=>setPatient({...patient,meds:e.target.value})} placeholder="ชื่อยา/ขนาดยา"/></div>
-                    <div className="md:col-span-2"><Label>Past Medical History (โรคประจำตัว)</Label><Input value={patient.pmh} onChange={(e)=>setPatient({...patient,pmh:e.target.value})} placeholder="DM/HT/CKD/หอบหืด ฯลฯ"/></div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="vitals" className="mt-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><Label>BP Sys</Label><div className="flex items-center gap-2"><Input value={vitals.sys} onChange={(e)=>setVitals({...vitals,sys:e.target.value})} inputMode="numeric" placeholder="เช่น 120"/><Gauge className="h-4 w-4"/></div></div>
-                    <div><Label>BP Dia</Label><Input value={vitals.dia} onChange={(e)=>setVitals({...vitals,dia:e.target.value})} inputMode="numeric" placeholder="เช่น 80"/></div>
-                    <div><Label>Pulse (bpm)</Label><Input value={vitals.hr} onChange={(e)=>setVitals({...vitals,hr:e.target.value})} inputMode="numeric" placeholder="เช่น 80"/></div>
-                    <div><Label>Resp (/min)</Label><Input value={vitals.rr} onChange={(e)=>setVitals({...vitals,rr:e.target.value})} inputMode="numeric" placeholder="เช่น 18"/></div>
-                    <div><Label>Temp (°C)</Label><div className="flex items-center gap-2"><Input value={vitals.temp} onChange={(e)=>setVitals({...vitals,temp:e.target.value})} inputMode="numeric" placeholder="เช่น 36.7"/><Thermometer className="h-4 w-4"/></div></div>
-                    <div><Label>SpO₂ (%)</Label><div className="flex items-center gap-2"><Input value={vitals.spo2} onChange={(e)=>setVitals({...vitals,spo2:e.target.value})} inputMode="numeric" placeholder="เช่น 98"/><Activity className="h-4 w-4"/></div></div>
-                    <div><Label>Weight (kg)</Label><Input value={vitals.wt} onChange={(e)=>setVitals({...vitals,wt:e.target.value})} inputMode="numeric" placeholder="เช่น 72"/></div>
-                    <div><Label>Height (cm)</Label><Input value={vitals.ht} onChange={(e)=>setVitals({...vitals,ht:e.target.value})} inputMode="numeric" placeholder="เช่น 173"/></div>
-                    <div><Label>BMI (auto)</Label><Input value={bmiDerived} readOnly/></div>
-                  </div>
-                  <div className="mt-4">
-                    <Button className="bg-green-600 text-white" onClick={handleSaveVitals}>บันทึกข้อมูล</Button>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <RangeFlag label="SYS" value={vitals.sys?parseFloat(vitals.sys):''} range={ranges.bpSys}/>
-                    <RangeFlag label="DIA" value={vitals.dia?parseFloat(vitals.dia):''} range={ranges.bpDia}/>
-                    <RangeFlag label="HR" value={vitals.hr?parseFloat(vitals.hr):''} range={ranges.hr}/>
-                    <RangeFlag label="RR" value={vitals.rr?parseFloat(vitals.rr):''} range={ranges.rr}/>
-                    <RangeFlag label="TEMP" value={vitals.temp?parseFloat(vitals.temp):''} range={ranges.temp}/>
-                    <RangeFlag label="SpO₂" value={vitals.spo2?parseFloat(vitals.spo2):''} range={ranges.spo2}/>
-                    <RangeFlag label="BMI" value={bmiDerived?parseFloat(bmiDerived):''} range={ranges.bmi}/>
-                  </div>
-
-                  {flags.length>0 && (
-                    <Alert className="mt-4 border-red-300"><AlertTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4"/> พบค่าวัดผิดเกณฑ์</AlertTitle><AlertDescription className="text-sm">{flags.join(' · ')}</AlertDescription></Alert>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="note" className="mt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <Label>S — Subjective</Label>
-                      <Textarea rows={4} value={noteS} onChange={(e)=>setNoteS(e.target.value)} placeholder="เช่น ไอแห้ง 2 วัน"/>
-                      <Label>O — Objective</Label>
-                      <Textarea rows={4} value={noteO} onChange={(e)=>setNoteO(e.target.value)} placeholder={`BP ${vitals.sys||'-'}/${vitals.dia||'-'}, HR ${vitals.hr||'-'}, Temp ${vitals.temp||'-'}`}/>
-                    </div>
-                    <div className="space-y-3">
-                      <Label>A — Assessment</Label>
-                      <Select value={noteA} onValueChange={setNoteA}>
-                        <SelectItem value="Stable">Stable</SelectItem>
-                        <SelectItem value="Need Doctor Now">Need Doctor Now</SelectItem>
-                        <SelectItem value="Observation">Observation</SelectItem>
-                      </Select>
-                      <Label>P — Plan</Label>
-                      <Textarea rows={6} value={noteP} onChange={(e)=>setNoteP(e.target.value)} placeholder="ส่งต่อแพทย์ / สั่ง Lab"/>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              <Separator className="my-6"/>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm text-black"><ScanLine className="h-4 w-4"/> คิวปัจจุบัน: <span className="font-medium text-black">{selected?.q||'-'}</span><span className="mx-2">•</span><span className="text-black">อัปเดต: {clientTime}</span></div>
-                <div className="flex items-center gap-2">
-                  <Button className="bg-gray-200 text-gray-800" onClick={handleQuickWalkIn}><UserPlus className="h-4 w-4 mr-1"/> Walk-in ใหม่</Button>
-                  <Button className="bg-blue-600 text-white" onClick={advanceToDoctor}>
-  <ChevronRight className="h-4 w-4 mr-1"/> ส่งต่อแพทย์
-</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="cases">
-          {/* เคสที่หมอส่งมาและเคสที่ส่งต่อไปแล้ว */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-bold mb-4">เคสที่หมอส่งมา</h2>
-          <ul className="space-y-3">
-            {casesFromDoctor.map((c) => (
-              <li key={c.caseId}>
-                <button className="w-full text-left p-3 border rounded hover:bg-gray-50" onClick={()=>setSelectedCase(c)}>
-                  <div className="font-semibold">{c.name} ({c.caseId})</div>
-                  <div className="text-xs text-gray-600">รหัสบัตรประชาชน: {c.idCard}</div>
-                  <div className="text-sm">อาการ: {c.chief}</div>
-                  <div className="text-sm">วินิจฉัย: {c.diagnosis}</div>
-                  <div className="text-xs text-gray-500">{c.notes}</div>
-                  <div className="text-xs text-gray-500">นัด: {c.appointment ? `${c.appointment.date} (${c.appointment.room})` : '-'}</div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-bold mb-4">เคสที่ส่งต่อไปแล้ว</h2>
-          <ul className="space-y-3">
-            {casesSent.map((c) => (
-              <li key={c.caseId}>
-                <button className="w-full text-left p-3 border rounded hover:bg-gray-50" onClick={()=>setSelectedCase(c)}>
-                  <div className="font-semibold">{c.name} ({c.caseId})</div>
-                  <div className="text-xs text-gray-600">รหัสบัตรประชาชน: {c.idCard}</div>
-                  <div className="text-sm">อาการ: {c.chief}</div>
-                  <div className="text-sm">วินิจฉัย: {c.diagnosis}</div>
-                  <div className="text-xs text-gray-500">{c.notes}</div>
-                  <div className="text-xs text-gray-500">นัด: {c.appointment ? `${c.appointment.date} (${c.appointment.room})` : '-'}</div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col md:flex-row">
+      {/* Sidebar เมนูขั้นตอน */}
+      <div className="w-full md:w-14 lg:w-20 min-h-[220px] md:min-h-screen bg-white shadow-xl flex flex-col p-4 gap-2 overflow-auto text-black">
+        <div className="text-xl md:text-2xl font-bold text-black mb-4 text-center">เมนูระบบคลินิก</div>
+        <Button
+          variant={step === 1 ? "default" : "outline"}
+          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 1 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          onClick={() => setStep(1)}
+        >
+          ลงทะเบียนผู้ป่วยใหม่
+        </Button>
+        <Button
+          variant={step === 2 ? "default" : "outline"}
+          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 2 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          onClick={() => setStep(2)}
+        >
+          ลงทะเบียนผู้ป่วยเก่า
+        </Button>
+        <Button
+          variant={step === 3 ? "default" : "outline"}
+          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 3 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          onClick={() => setStep(3)}
+        >
+          ค้นหา/เลือกผู้ป่วย
+        </Button>
+        <Button
+          variant={step === 4 ? "default" : "outline"}
+          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          onClick={() => setStep(4)}
+        >
+          ดูรายการนัดหมาย
+        </Button>
+        <Button
+          variant={step === 5 ? "default" : "outline"}
+          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 5 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          onClick={() => setStep(5)}
+        >
+          กรอกอาการเบื้องต้น/วัด Vital Signs
+        </Button>
+        <Button
+          variant={step === 6 ? "default" : "outline"}
+          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 6 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          onClick={() => setStep(6)}
+        >
+          ส่งเคสไปยังหมอ
+        </Button>
       </div>
-
-      {/* Modal/Section แสดงรายละเอียดเคสที่เลือก */}
-      {selectedCase && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full relative">
-            <button className="absolute top-2 right-2 text-gray-500" onClick={()=>setSelectedCase(null)}>✕</button>
-            <h2 className="text-lg font-bold mb-2">รายละเอียดเคส</h2>
-            <div className="mb-2"><span className="font-semibold">Case ID:</span> {selectedCase.caseId}</div>
-            <div className="mb-2"><span className="font-semibold">ชื่อ:</span> {selectedCase.name}</div>
-            <div className="mb-2"><span className="font-semibold">รหัสบัตรประชาชน:</span> {selectedCase.idCard}</div>
-            <div className="mb-2"><span className="font-semibold">อาการ:</span> {selectedCase.chief}</div>
-            <div className="mb-2"><span className="font-semibold">วินิจฉัย:</span> {selectedCase.diagnosis}</div>
-            <div className="mb-2"><span className="font-semibold">คำแนะนำแพทย์:</span> {selectedCase.notes || "-"}</div>
-            <div className="mb-2"><span className="font-semibold">รายละเอียดการนัด:</span> {selectedCase.appointment ? `รหัส: ${selectedCase.appointment.id}, วันที่: ${selectedCase.appointment.date}, ห้อง: ${selectedCase.appointment.room || '-'}` : '-'}
-            </div>
-            <h3 className="font-semibold mt-4 mb-2">รายการยา</h3>
-            <table className="w-full border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border px-2 py-1">ชื่อยา</th>
-                  <th className="border px-2 py-1">ขนาดยา</th>
-                  <th className="border px-2 py-1">วิธีใช้</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedCase.medicines.map((med, idx) => (
-                  <tr key={idx}>
-                    <td className="border px-2 py-1">{med.name}</td>
-                    <td className="border px-2 py-1">{med.dosage}</td>
-                    <td className="border px-2 py-1">{med.instructions}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-        </TabsContent>
-      </Tabs>
+      {/* Content ฝั่งขวา */}
+      <div className="flex-1 flex items-start p-0 overflow-auto">
+        <Card className="w-full max-w-none shadow-2xl rounded-none bg-white">
+          <CardHeader>
+            <CardTitle className="text-black text-xl md:text-2xl font-bold">
+              {step === 1 && "ลงทะเบียนผู้ป่วยใหม่"}
+              {step === 2 && "ลงทะเบียนผู้ป่วยเก่า"}
+              {step === 3 && "ค้นหา/เลือกผู้ป่วย"}
+              {step === 4 && "รายการนัดหมาย"}
+              {step === 5 && "กรอกอาการเบื้องต้น/วัด Vital Signs"}
+              {step === 6 && "ส่งเคสไปยังหมอ"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-black text-base">
+            {step === 1 && (
+              <PatientRegisterForm
+                patient={patient}
+                setPatient={setPatient}
+                isWalkIn={true}
+                handleRegisterPatient={() => setStep(3)}
+              />
+            )}
+            {step === 2 && (
+              <PatientRegisterForm
+                patient={patient}
+                setPatient={setPatient}
+                isWalkIn={false}
+                handleRegisterPatient={() => setStep(3)}
+              />
+            )}
+            {step === 3 && (
+              <SearchPatientSection
+                selectedPatient={patient}
+                setSelectedPatient={setPatient}
+                onSelectPatient={() => setStep(4)}
+              />
+            )}
+            {step === 4 && (
+              <AppointmentList
+                appointments={filteredAppointments}
+                searchText={searchText}
+                setSearchText={setSearchText}
+                handleCheckInOnline={appt => {
+                  setSelectedAppointment(appt);
+                  setStep(5);
+                }}
+              />
+            )}
+            {step === 5 && (
+              <TriageForm
+                patient={patient}
+                setPatient={setPatient}
+                vitals={{}}
+                setVitals={() => {}}
+                bmiDerived={""}
+                flags={[]}
+                noteS={""}
+                setNoteS={() => {}}
+                noteO={""}
+                setNoteO={() => {}}
+                noteA={""}
+                setNoteA={() => {}}
+                noteP={""}
+                setNoteP={() => {}}
+                handleSaveVitals={() => setStep(6)}
+                selected={null}
+                clientTime={""}
+                handleQuickWalkIn={() => {}}
+                advanceToDoctor={() => setStep(6)}
+              />
+            )}
+            {step === 6 && (
+              <>
+                <div className="text-green-600 text-center my-8 text-xl font-bold">ส่งเคสสำเร็จ!</div>
+                <Button className="w-full text-black font-semibold py-3 rounded-lg" onClick={() => setStep(1)}>
+                  กลับสู่หน้าหลัก
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
