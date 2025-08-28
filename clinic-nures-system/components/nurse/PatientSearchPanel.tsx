@@ -1,18 +1,32 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = "https://YOUR_PROJECT_ID.supabase.co";
+const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function PatientSearchPanel({ onSelect }: { onSelect: (patient: any) => void }) {
   const [search, setSearch] = useState("");
-  const patients = [
-    { id: "HN20250001", name: "นาย กร ยนต์", dob: "20 ม.ค. 2536", gender: "ชาย", phone: "0878854551" },
-    { id: "HN20250002", name: "นาง ดี อน", dob: "10 ม.ค. 2532", gender: "หญิง", phone: "0625554411" },
-  ];
+  const [patients, setPatients] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchPatients() {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id, name, dob, gender, phone");
+      if (!error && data) setPatients(data);
+    }
+    fetchPatients();
+  }, []);
+
   const filtered = patients.filter(
     (p) =>
-      p.name.includes(search) ||
-      p.id.includes(search) ||
-      p.phone.includes(search)
+      (p.name && p.name.includes(search)) ||
+      (p.id && p.id.includes(search)) ||
+      (p.phone && p.phone.includes(search))
   );
+
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-4">
       <div className="font-semibold mb-2">ค้นหาชื่อผู้ป่วย</div>

@@ -644,42 +644,42 @@ const handleCreateAppointmentForRegistered = async () => {
         <div className="text-xl md:text-2xl font-bold text-black mb-4 text-center">เมนูระบบคลินิก</div>
         <Button
           variant={step === 1 ? "default" : "outline"}
-          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 1 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 1 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
           onClick={() => setStep(1)}
         >
           ลงทะเบียนผู้ป่วยใหม่
         </Button>
         <Button
           variant={step === 2 ? "default" : "outline"}
-          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 2 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 2 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
           onClick={() => setStep(2)}
         >
           ลงทะเบียนผู้ป่วยเก่า
         </Button>
         <Button
           variant={step === 3 ? "default" : "outline"}
-          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 3 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 3 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
           onClick={() => setStep(3)}
         >
           ค้นหา/เลือกผู้ป่วย
         </Button>
         <Button
           variant={step === 4 ? "default" : "outline"}
-          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
           onClick={() => setStep(4)}
         >
           ดูรายการนัดหมาย
         </Button>
         <Button
           variant={step === 5 ? "default" : "outline"}
-          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 5 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 5 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
           onClick={() => setStep(5)}
         >
           กรอกอาการเบื้องต้น/วัด Vital Signs
         </Button>
         <Button
           variant={step === 6 ? "default" : "outline"}
-          className={`w-full text-black font-semibold py-3 rounded-lg ${step === 6 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 6 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
           onClick={() => setStep(6)}
         >
           ส่งเคสไปยังหมอ

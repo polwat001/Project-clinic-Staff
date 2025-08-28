@@ -68,7 +68,7 @@ export default function SearchPatientSection({
           className="mb-2"
         />
         <ul className="space-y-2">
-          {filteredRegisteredPatients.map(p => (
+          {(filteredRegisteredPatients ?? []).map(p => (
             <li
               key={p.hn}
               className={`flex justify-between items-center p-2 rounded cursor-pointer ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
