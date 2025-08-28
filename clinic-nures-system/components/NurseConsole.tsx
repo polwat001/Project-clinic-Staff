@@ -11,6 +11,8 @@ import SearchPatientSection from "./nurse/SearchPatientSection";
 import CaseHistorySection from "./nurse/CaseHistorySection";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 
 interface DoctorDiagnosis {
@@ -379,18 +381,16 @@ export default function NurseConsole() {
     }
   };
   // ลบคิว
-  const handleRemoveQueue = async (qItem:any) => {
-    setQueue(queue.filter(q => q.q !== qItem.q));
-    if(selected?.q === qItem.q) setSelected(queue[0] || null);
-    const sb = await getSupabase();
-    if(sb) await sb.from('queues').delete().eq('queue_no', qItem.q);
+  const handleRemoveQueue = (appt: Appointment) => {
+    setAppointments(prev => prev.filter(a => a.id !== appt.id));
   };
 
-  // ข้ามคิว (เปลี่ยนสถานะเป็น SKIPPED)
-  const handleSkipQueue = async (qItem:any) => {
-    setQueue(queue.map(q => q.q === qItem.q ? { ...q, status: 'SKIPPED' } : q));
-    const sb = await getSupabase();
-    if(sb) await sb.from('queues').update({ status: 'SKIPPED' }).eq('queue_no', qItem.q);
+  // ข้ามคิว (เลื่อนไปหลังสุด)
+  const handleSkipQueue = (appt: Appointment) => {
+    setAppointments(prev => {
+      const filtered = prev.filter(a => a.id !== appt.id);
+      return [...filtered, appt]; // เพิ่มคิวที่ข้ามไปหลังสุด
+    });
   };
  
   useEffect(()=>{ (async()=>{
@@ -487,6 +487,10 @@ export default function NurseConsole() {
     alert("ส่งต่อแพทย์แล้ว (สถานะ: ตรวจอยู่) คิว: "+(selected?.q||'-')+" เวลา: "+nowStr());
   };
 
+  // เพิ่มฟังก์ชัน filter คิวแต่ละสถานะ
+  const waitingForDoctorQueue = queue.filter(q => q.status === 'READY_FOR_DOCTOR');
+  const inExamQueue = queue.filter(q => q.status === 'IN_EXAM');
+
   // เพิ่ม state สำหรับค้นหา
   const [searchText, setSearchText] = useState('');
 
@@ -529,6 +533,7 @@ useEffect(() => {
 const [registeredPatients, setRegisteredPatients] = useState<Patient[]>([]);
 const [searchPatientText, setSearchPatientText] = useState('');
 const [selectedRegisteredPatient, setSelectedRegisteredPatient] = useState<Patient | null>(null);
+const [appointmentDate, setAppointmentDate] = useState('');
 
 // โหลดข้อมูลผู้ป่วยที่ลงทะเบียนแล้ว
 useEffect(() => {
@@ -536,7 +541,36 @@ useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
     const { data, error } = await sb.from('patients').select('*').order('created_at', { ascending: false });
-    if (!error && data) setRegisteredPatients(data);
+    if (!error && data) {
+      setRegisteredPatients(
+        data.map((row: any) => ({
+          hn: row.hn ?? '',
+          name: row.name ?? `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim(),
+          phone: row.phone ?? '',
+          dob: row.dob ?? '',
+          apptId: '',
+          chief: '',
+          allergies: row.allergies ?? '',
+          pmh: row.pmh ?? '',
+          meds: '',
+          urgency: '',
+          idCard: row.id_card ?? '', // <--- สำคัญ
+          prefix: row.prefix ?? '',
+          firstName: row.first_name ?? '', // <--- สำคัญ
+          lastName: row.last_name ?? '',  // <--- สำคัญ
+          gender: row.gender ?? '',
+          address: row.address ?? '',
+          province: row.province ?? '',
+          district: row.district ?? '',
+          rights: row.rights ?? '',
+          email: row.email ?? '',
+          lineId: row.line_user_id ?? '',
+          emergencyContact: row.emergency_contact ?? '',
+          emergencyPhone: row.emergency_phone ?? '',
+          additionalSymptom: '',
+        }))
+      );
+    }
   };
   fetchPatients();
 }, []);
@@ -588,14 +622,14 @@ const handleSelectRegisteredPatient = (p: Patient) => {
 };
 
 // ฟังก์ชันสร้างนัดใหม่สำหรับผู้ป่วยเก่า
-const handleCreateAppointmentForRegistered = async () => {
+const handleCreateAppointmentForRegistered = async (dateStr?: string) => {
   if (!selectedRegisteredPatient) return;
   const sb = getSupabase();
   if (!sb) return;
   const apptData = {
     hn: selectedRegisteredPatient.hn,
     patient_name: selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ''} ${selectedRegisteredPatient.lastName || ''}`.trim(),
-    scheduled_at: new Date().toISOString(),
+    scheduled_at: dateStr || new Date().toISOString(), // ใช้วันที่ที่เลือก
     chief: patient.chief,
     flags: patient.allergies ? [patient.allergies] : [],
     room: 'Triage',
@@ -694,6 +728,10 @@ const handleSendCase = async () => {
   setStep(5); // ไปหน้าส่งเคสสำเร็จ
 };
 
+  // เพิ่ม state สำหรับดื่มสุราและสูบบุหรี่
+  const [drinking, setDrinking] = useState("");
+  const [smoking, setSmoking] = useState("");
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col md:flex-row">
       {/* Sidebar เมนูขั้นตอน */}
@@ -762,7 +800,7 @@ const handleSendCase = async () => {
                 {/* ช่องค้นหา */}
                 <input
                   type="text"
-                  className="border px-2 py-1 rounded mb-2 w-full"
+                  className="border text-black px-2 py-1 rounded mb-2 w-full"
                   placeholder="ค้นหาด้วย HN, ชื่อ, นามสกุล, เลขบัตรประชาชน"
                   value={searchPatientText}
                   onChange={e => setSearchPatientText(e.target.value)}
@@ -778,7 +816,7 @@ const handleSendCase = async () => {
                       className={`p-2 cursor-pointer hover:bg-blue-50 ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
                       onClick={() => handleSelectRegisteredPatient(p)}
                     >
-                      <div className="font-bold">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
+                      <div className="font-bold text-black">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
                       <div className="text-xs text-gray-600">
                         HN: {p.hn} | เลขบัตร: {p.idCard} | เบอร์โทร: {p.phone} | วันเกิด: {p.dob} | เพศ: {p.gender} | สิทธิ: {p.rights}
                       </div>
@@ -787,13 +825,14 @@ const handleSendCase = async () => {
                 </div>
                 {/* แสดงข้อมูลผู้ป่วยที่เลือก */}
                 {selectedRegisteredPatient && (
-                  <div className="bg-white text-black rounded-lg shadow p-4 mb-4">
+                  <div className="bg-gray-100 text-black rounded-lg shadow p-4 mb-4">
                     <div className="font-bold text-lg mb-2 text-black">
                       {selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ""} ${selectedRegisteredPatient.lastName || ""}`.trim()}
                     </div>
                     <div className="text-black">HN: {selectedRegisteredPatient.hn}</div>
                     <div className="text-black">เลขบัตรประชาชน: {selectedRegisteredPatient.idCard}</div>
                     <div className="text-black">ชื่อ: {selectedRegisteredPatient.firstName} {selectedRegisteredPatient.lastName}</div>
+                    <div className="text-black">เพศ: {selectedRegisteredPatient.gender}</div>
                     <div className="text-black">วันเกิด: {selectedRegisteredPatient.dob}</div>
                     <div className="text-black">เพศ: {selectedRegisteredPatient.gender}</div>
                     <div className="text-black">เบอร์โทร: {selectedRegisteredPatient.phone}</div>
@@ -808,9 +847,18 @@ const handleSendCase = async () => {
                     <div className="text-black font-bold mt-2">โรคประจำตัว: <span className="font-normal">{selectedRegisteredPatient.pmh}</span></div>
                     <div className="text-black font-bold mt-2">แพ้ยา: <span className="font-normal">{selectedRegisteredPatient.allergies}</span></div>
                     {/* ปุ่มสร้างนัดหมาย */}
+                    <div className="mt-4">
+                      <label className="block text-black mb-1">วันและเวลานัดหมาย</label>
+                      <input
+                        type="datetime-local"
+                        className="border px-2 py-1 rounded w-full text-black"
+                        value={appointmentDate}
+                        onChange={e => setAppointmentDate(e.target.value)}
+                      />
+                    </div>
                     <button
                       className="mt-4 px-4 py-2 bg-blue-500 text-white rounded mr-2"
-                      onClick={handleCreateAppointmentForRegistered}
+                      onClick={() => handleCreateAppointmentForRegistered(appointmentDate)}
                     >
                       สร้างนัดหมาย
                     </button>
@@ -827,13 +875,18 @@ const handleSendCase = async () => {
             )}
             {step === 3 && (
               <AppointmentList
-                appointments={filteredAppointments}
+                appointments={filteredAppointments.map((a, idx) => ({
+      ...a,
+      queueNo: idx + 1,
+    }))}
                 searchText={searchText}
                 setSearchText={setSearchText}
                 handleCheckInOnline={appt => {
                   setSelectedAppointment(appt);
                   setStep(5);
                 }}
+                handleRemoveQueue={handleRemoveQueue}      // <--- เพิ่มตรงนี้
+    handleSkipQueue={handleSkipQueue}          // <--- เพิ่มตรงนี้
               />
             )}
             {step === 4 && (
@@ -857,6 +910,10 @@ const handleSendCase = async () => {
                 clientTime={clientTime}
                 handleQuickWalkIn={handleQuickWalkIn}
                 advanceToDoctor={handleSendCase}
+                drinking={drinking}
+                setDrinking={setDrinking}
+                smoking={smoking}
+                setSmoking={setSmoking}
               />
             )}
             {step === 5 && (
@@ -867,6 +924,52 @@ const handleSendCase = async () => {
                 </Button>
               </>
             )}
+
+            {/* แสดงคิวที่รอหมอรับ */}
+            <div className="mb-6">
+              <div className="font-bold text-lg mb-2 text-blue-700">คิวที่รอหมอรับ</div>
+              {waitingForDoctorQueue.length === 0 ? (
+                <div className="text-gray-500">ไม่มีคิวที่รอหมอรับ</div>
+              ) : (
+                <div className="space-y-2">
+                  {waitingForDoctorQueue.map((q, idx) => (
+                    <div key={q.q} className="p-2 border rounded bg-blue-50 flex justify-between items-center">
+                      <div>
+                        <div className="font-bold">คิวที่ {q.q}</div>
+                        <div>ชื่อ: {q.name || '-'}</div>
+                        <div>HN: {q.hn || '-'}</div>
+                        <div>ประเภท: {q.type}</div>
+                        <div>ห้อง: {q.room}</div>
+                      </div>
+                      <div className="text-blue-600 font-bold">รอหมอรับ</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* แสดงคิวที่หมอกำลังรับอยู่ */}
+            <div className="mb-6">
+              <div className="font-bold text-lg mb-2 text-green-700">คิวที่หมอกำลังรับอยู่</div>
+              {inExamQueue.length === 0 ? (
+                <div className="text-gray-500">ไม่มีคิวที่หมอกำลังรับอยู่</div>
+              ) : (
+                <div className="space-y-2">
+                  {inExamQueue.map((q, idx) => (
+                    <div key={q.q} className="p-2 border rounded bg-green-50 flex justify-between items-center">
+                      <div>
+                        <div className="font-bold">คิวที่ {q.q}</div>
+                        <div>ชื่อ: {q.name || '-'}</div>
+                        <div>HN: {q.hn || '-'}</div>
+                        <div>ประเภท: {q.type}</div>
+                        <div>ห้อง: {q.room}</div>
+                      </div>
+                      <div className="text-green-600 font-bold">หมอกำลังรับ</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

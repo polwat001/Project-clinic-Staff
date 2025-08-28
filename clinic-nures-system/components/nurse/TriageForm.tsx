@@ -49,6 +49,10 @@ interface Props {
   clientTime: string;
   handleQuickWalkIn: () => void;
   advanceToDoctor: () => void;
+  drinking: string;
+  setDrinking: (v: string) => void;
+  smoking: string;
+  setSmoking: (v: string) => void;
 }
 
 export default function TriageForm({
@@ -71,59 +75,71 @@ export default function TriageForm({
   clientTime,
   handleQuickWalkIn,
   advanceToDoctor,
+  drinking,
+  setDrinking,
+  smoking,
+  setSmoking,
 }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ตรวจเบื้องต้น/ส่งต่อแพทย์</CardTitle>
+        <CardTitle className="text-black">ตรวจเบื้องต้น/ส่งต่อแพทย์</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-2 mb-2">
+      <CardContent className="text-black">
+        <div className="grid grid-cols-2 gap-1 mb-1">
           <Input
             placeholder="BP Systolic"
             value={vitals.sys}
             onChange={e => setVitals({ ...vitals, sys: e.target.value })}
+            className="text-black"
           />
           <Input
             placeholder="BP Diastolic"
             value={vitals.dia}
             onChange={e => setVitals({ ...vitals, dia: e.target.value })}
+            className="text-black"
           />
           <Input
             placeholder="HR"
             value={vitals.hr}
             onChange={e => setVitals({ ...vitals, hr: e.target.value })}
+            className="text-black"
           />
           <Input
             placeholder="RR"
             value={vitals.rr}
             onChange={e => setVitals({ ...vitals, rr: e.target.value })}
+            className="text-black"
           />
           <Input
             placeholder="Temp"
             value={vitals.temp}
             onChange={e => setVitals({ ...vitals, temp: e.target.value })}
+            className="text-black"
           />
           <Input
             placeholder="SpO2"
             value={vitals.spo2}
             onChange={e => setVitals({ ...vitals, spo2: e.target.value })}
+            className="text-black"
           />
           <Input
             placeholder="น้ำหนัก (kg)"
             value={vitals.wt}
             onChange={e => setVitals({ ...vitals, wt: e.target.value })}
+            className="text-black"
           />
           <Input
             placeholder="ส่วนสูง (cm)"
             value={vitals.ht}
             onChange={e => setVitals({ ...vitals, ht: e.target.value })}
+            className="text-black"
           />
         </div>
-        <div className="mb-2">
+        <div className="mb-2 text-black">
           BMI: <Badge>{bmiDerived || "-"}</Badge>
         </div>
-        <div className="mb-2">
+        <div className="mb-2 text-black">
           {flags.length > 0 && (
             <div>
               {flags.map(flag => (
@@ -133,33 +149,41 @@ export default function TriageForm({
           )}
         </div>
         <Input
-          placeholder="S (อาการ)"
+          placeholder="อาการเบื้องต้น"
           value={noteS}
           onChange={e => setNoteS(e.target.value)}
-          className="mb-2"
+          className="mb-2 text-black"
         />
-        <Input
-          placeholder="O (ตรวจร่างกาย)"
-          value={noteO}
-          onChange={e => setNoteO(e.target.value)}
-          className="mb-2"
-        />
-        <Input
-          placeholder="A (ประเมิน)"
-          value={noteA}
-          onChange={e => setNoteA(e.target.value)}
-          className="mb-2"
-        />
-        <Input
-          placeholder="P (แผน)"
-          value={noteP}
-          onChange={e => setNoteP(e.target.value)}
-          className="mb-2"
-        />
+        <div className="mb-2 flex gap-4">
+          <div className="flex-1">
+            <label className="block text-black font-bold mb-1">ดื่มสุรา</label>
+            <select
+              className="border rounded px-2 py-1 text-black w-full"
+              value={drinking}
+              onChange={e => setDrinking(e.target.value)}
+            >
+              <option value="">เลือก</option>
+              <option value="ไม่ดื่ม">ไม่ดื่ม</option>
+              <option value="ดื่ม">ดื่ม</option>
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-black font-bold mb-1">สูบบุหรี่</label>
+            <select
+              className="border rounded px-2 py-1 text-black w-full"
+              value={smoking}
+              onChange={e => setSmoking(e.target.value)}
+            >
+              <option value="">เลือก</option>
+              <option value="ไม่สูบ">ไม่สูบ</option>
+              <option value="สูบ">สูบ</option>
+            </select>
+          </div>
+        </div>
         <div className="flex gap-2 mt-2">
-          <Button onClick={handleSaveVitals}>บันทึก Vital Signs</Button>
-          <Button onClick={advanceToDoctor}>ส่งต่อแพทย์</Button>
-          <Button variant="secondary" onClick={handleQuickWalkIn}>Walk-in</Button>
+          <Button className="text-black" onClick={handleSaveVitals}>บันทึก Vital Signs</Button>
+          <Button className="text-black" onClick={advanceToDoctor}>ส่งต่อแพทย์</Button>
+          <Button variant="secondary" className="text-black" onClick={handleQuickWalkIn}>Walk-in</Button>
         </div>
       </CardContent>
     </Card>
