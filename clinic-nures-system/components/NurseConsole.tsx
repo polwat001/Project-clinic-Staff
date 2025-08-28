@@ -637,6 +637,63 @@ const handleCreateAppointmentForRegistered = async () => {
   }
 };
 
+  // เมื่อเลือกผู้ป่วยเก่า walk-in
+const handleWalkInOldPatient = (patient: Patient) => {
+  setPatientState({
+    ...patient,
+    urgency: 'P3',
+    apptId: '',
+    chief: '',
+    additionalSymptom: ''
+  });
+  setStep(4); // ไปกรอกอาการเบื้องต้น/วัด Vital Signs
+};
+
+// เมื่อกด "ส่งเคสไปยังหมอ"
+const handleSendCase = async () => {
+  // บันทึก triage/vitals ใหม่ทุกครั้ง
+  const sb = getSupabase();
+  if (!sb) {
+    alert('เชื่อมต่อ Supabase ไม่สำเร็จ');
+    return;
+  }
+  // สร้าง encounter ใหม่ (หรือใช้ encounter เดิมถ้ามี)
+  let encounter_id = null;
+  const { data: enc } = await sb.from('encounters').insert({
+    patient_id: patientState.hn, // หรือ patient_id ที่ map จาก hn
+    urgency: patientState.urgency,
+    status: 'ARRIVED',
+    created_at: new Date().toISOString()
+  }).select('id').single();
+  encounter_id = enc?.id;
+
+  // บันทึก triage
+  await sb.from('triage').insert({
+    encounter_id,
+    chief_complaint: patientState.chief,
+    allergies: patientState.allergies,
+    medications: patientState.meds,
+    pmh: patientState.pmh,
+    urgency: patientState.urgency
+  });
+
+  // บันทึก vitals
+  await sb.from('vitals').insert({
+    encounter_id,
+    sys: vitals.sys,
+    dia: vitals.dia,
+    hr: vitals.hr,
+    rr: vitals.rr,
+    temp_c: vitals.temp,
+    spo2: vitals.spo2,
+    weight_kg: vitals.wt,
+    height_cm: vitals.ht,
+    bmi: bmiDerived ? parseFloat(bmiDerived) : null
+  });
+
+  setStep(5); // ไปหน้าส่งเคสสำเร็จ
+};
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col md:flex-row">
       {/* Sidebar เมนูขั้นตอน */}
@@ -654,33 +711,27 @@ const handleCreateAppointmentForRegistered = async () => {
           className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 2 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
           onClick={() => setStep(2)}
         >
-          ลงทะเบียนผู้ป่วยเก่า
+          ค้นหา/เลือกผู้ป่วยเก่า
         </Button>
+
         <Button
           variant={step === 3 ? "default" : "outline"}
-          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 3 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(3)}
-        >
-          ค้นหา/เลือกผู้ป่วย
-        </Button>
-        <Button
-          variant={step === 4 ? "default" : "outline"}
           className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(4)}
+          onClick={() => setStep(3)}
         >
           ดูรายการนัดหมาย
         </Button>
         <Button
-          variant={step === 5 ? "default" : "outline"}
+          variant={step === 4 ? "default" : "outline"}
           className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 5 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(5)}
+          onClick={() => setStep(4)}
         >
           กรอกอาการเบื้องต้น/วัด Vital Signs
         </Button>
         <Button
-          variant={step === 6 ? "default" : "outline"}
+          variant={step === 5 ? "default" : "outline"}
           className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 6 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(6)}
+          onClick={() => setStep(5  )}
         >
           ส่งเคสไปยังหมอ
         </Button>
@@ -691,11 +742,10 @@ const handleCreateAppointmentForRegistered = async () => {
           <CardHeader>
             <CardTitle className="text-black text-xl md:text-2xl font-bold">
               {step === 1 && "ลงทะเบียนผู้ป่วยใหม่"}
-              {step === 2 && "ลงทะเบียนผู้ป่วยเก่า"}
-              {step === 3 && "ค้นหา/เลือกผู้ป่วย"}
-              {step === 4 && "รายการนัดหมาย"}
-              {step === 5 && "กรอกอาการเบื้องต้น/วัด Vital Signs"}
-              {step === 6 && "ส่งเคสไปยังหมอ"}
+              {step === 2 && "ค้นหา/เลือกผู้ป่วยเก่า"}
+              {step === 3 && "รายการนัดหมาย"}
+              {step === 4 && "กรอกอาการเบื้องต้น/วัด Vital Signs"}
+              {step === 5 && "ส่งเคสไปยังหมอ"}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-black text-base">
@@ -708,21 +758,74 @@ const handleCreateAppointmentForRegistered = async () => {
               />
             )}
             {step === 2 && (
-              <PatientRegisterForm
-                patient={patient}
-                setPatient={setPatient}
-                isWalkIn={false}
-                handleRegisterPatient={() => setStep(3)}
-              />
+              <div>
+                {/* ช่องค้นหา */}
+                <input
+                  type="text"
+                  className="border px-2 py-1 rounded mb-2 w-full"
+                  placeholder="ค้นหาด้วย HN, ชื่อ, นามสกุล, เลขบัตรประชาชน"
+                  value={searchPatientText}
+                  onChange={e => setSearchPatientText(e.target.value)}
+                />
+                {/* รายการผู้ป่วยทั้งหมด */}
+                <div className="max-h-64 overflow-auto border rounded mb-4">
+                  {filteredRegisteredPatients.length === 0 && (
+                    <div className="p-4 text-gray-500">ไม่พบผู้ป่วย</div>
+                  )}
+                  {filteredRegisteredPatients.map(p => (
+                    <div
+                      key={p.hn}
+                      className={`p-2 cursor-pointer hover:bg-blue-50 ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
+                      onClick={() => handleSelectRegisteredPatient(p)}
+                    >
+                      <div className="font-bold">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
+                      <div className="text-xs text-gray-600">
+                        HN: {p.hn} | เลขบัตร: {p.idCard} | เบอร์โทร: {p.phone} | วันเกิด: {p.dob} | เพศ: {p.gender} | สิทธิ: {p.rights}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* แสดงข้อมูลผู้ป่วยที่เลือก */}
+                {selectedRegisteredPatient && (
+                  <div className="bg-white text-black rounded-lg shadow p-4 mb-4">
+                    <div className="font-bold text-lg mb-2 text-black">
+                      {selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ""} ${selectedRegisteredPatient.lastName || ""}`.trim()}
+                    </div>
+                    <div className="text-black">HN: {selectedRegisteredPatient.hn}</div>
+                    <div className="text-black">เลขบัตรประชาชน: {selectedRegisteredPatient.idCard}</div>
+                    <div className="text-black">ชื่อ: {selectedRegisteredPatient.firstName} {selectedRegisteredPatient.lastName}</div>
+                    <div className="text-black">วันเกิด: {selectedRegisteredPatient.dob}</div>
+                    <div className="text-black">เพศ: {selectedRegisteredPatient.gender}</div>
+                    <div className="text-black">เบอร์โทร: {selectedRegisteredPatient.phone}</div>
+                    <div className="text-black">สิทธิการรักษา: {selectedRegisteredPatient.rights}</div>
+                    <div className="text-black">ที่อยู่: {selectedRegisteredPatient.address}</div>
+                    <div className="text-black">จังหวัด: {selectedRegisteredPatient.province}</div>
+                    <div className="text-black">อำเภอ: {selectedRegisteredPatient.district}</div>
+                    <div className="text-black">อีเมล: {selectedRegisteredPatient.email}</div>
+                    <div className="text-black">Line ID: {selectedRegisteredPatient.lineId}</div>
+                    <div className="text-black font-bold mt-2">ผู้ติดต่อฉุกเฉิน: {selectedRegisteredPatient.emergencyContact}</div>
+                    <div className="text-black">เบอร์ฉุกเฉิน: {selectedRegisteredPatient.emergencyPhone}</div>
+                    <div className="text-black font-bold mt-2">โรคประจำตัว: <span className="font-normal">{selectedRegisteredPatient.pmh}</span></div>
+                    <div className="text-black font-bold mt-2">แพ้ยา: <span className="font-normal">{selectedRegisteredPatient.allergies}</span></div>
+                    {/* ปุ่มสร้างนัดหมาย */}
+                    <button
+                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded mr-2"
+                      onClick={handleCreateAppointmentForRegistered}
+                    >
+                      สร้างนัดหมาย
+                    </button>
+                    {/* ปุ่ม walk-in */}
+                    <button
+                      className="mt-4 px-4 py-2 bg-green-500 text-white rounded"
+                      onClick={() => handleWalkInOldPatient(selectedRegisteredPatient)}
+                    >
+                      Walk-in และตรวจอาการเบื้องต้น
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             {step === 3 && (
-              <SearchPatientSection
-                selectedPatient={patient}
-                setSelectedPatient={setPatient}
-                onSelectPatient={() => setStep(4)}
-              />
-            )}
-            {step === 4 && (
               <AppointmentList
                 appointments={filteredAppointments}
                 searchText={searchText}
@@ -733,30 +836,30 @@ const handleCreateAppointmentForRegistered = async () => {
                 }}
               />
             )}
-            {step === 5 && (
+            {step === 4 && (
               <TriageForm
-                patient={patient}
-                setPatient={setPatient}
-                vitals={{}}
-                setVitals={() => {}}
-                bmiDerived={""}
-                flags={[]}
-                noteS={""}
-                setNoteS={() => {}}
-                noteO={""}
-                setNoteO={() => {}}
-                noteA={""}
-                setNoteA={() => {}}
-                noteP={""}
-                setNoteP={() => {}}
-                handleSaveVitals={() => setStep(6)}
-                selected={null}
-                clientTime={""}
-                handleQuickWalkIn={() => {}}
-                advanceToDoctor={() => setStep(6)}
+                patient={patientState}
+                setPatient={setPatientState}
+                vitals={vitals}
+                setVitals={setVitals}
+                bmiDerived={bmiDerived}
+                flags={flags}
+                noteS={noteS}
+                setNoteS={setNoteS}
+                noteO={noteO}
+                setNoteO={setNoteO}
+                noteA={noteA}
+                setNoteA={setNoteA}
+                noteP={noteP}
+                setNoteP={setNoteP}
+                handleSaveVitals={handleSendCase}
+                selected={selected}
+                clientTime={clientTime}
+                handleQuickWalkIn={handleQuickWalkIn}
+                advanceToDoctor={handleSendCase}
               />
             )}
-            {step === 6 && (
+            {step === 5 && (
               <>
                 <div className="text-green-600 text-center my-8 text-xl font-bold">ส่งเคสสำเร็จ!</div>
                 <Button className="w-full text-black font-semibold py-3 rounded-lg" onClick={() => setStep(1)}>

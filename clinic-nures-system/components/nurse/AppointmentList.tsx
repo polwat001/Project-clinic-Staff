@@ -35,7 +35,7 @@ export default function AppointmentList({
       </CardHeader>
       <CardContent>
         <Input
-          placeholder="ค้นหาด้วยชื่อ, HN, อาการ"
+          placeholder="ค้นหาด้วยชื่อ, HN, รหัสประชาชน"
           value={searchText}
           onChange={e => setSearchText(e.target.value)}
           className="mb-2"

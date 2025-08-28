@@ -54,3 +54,27 @@ export default function PatientSearchPanel({ onSelect }: { onSelect: (patient: a
     </div>
   );
 }
+
+// ตัวอย่างใน RegisterAndTriage หรือในขั้นตอน "ลงทะเบียนผู้ป่วยเก่า"
+import PatientSearchPanel from "./PatientSearchPanel";
+import { useState } from "react";
+
+export default function OldPatientStep() {
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+
+  return (
+    <div>
+      <PatientSearchPanel onSelect={setSelectedPatient} />
+      {selectedPatient && (
+        <div className="bg-gray-50 rounded-lg shadow p-4 mt-4">
+          <div className="font-bold text-lg">{selectedPatient.name}</div>
+          <div>HN: {selectedPatient.id}</div>
+          <div>วันเกิด: {selectedPatient.dob}</div>
+          <div>เพศ: {selectedPatient.gender}</div>
+          <div>เบอร์โทร: {selectedPatient.phone}</div>
+          {/* เพิ่ม field อื่นๆ ตามต้องการ */}
+        </div>
+      )}
+    </div>
+  );
+}
