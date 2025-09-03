@@ -1,5 +1,4 @@
-import NurseConsole from "@/components/NurseConsole";
-
+import MainApp from "../components/MainApp";
 export default function Page() {
-  return <NurseConsole />;
+  return <MainApp />;
 }

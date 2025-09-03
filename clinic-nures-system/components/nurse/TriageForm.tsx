@@ -82,9 +82,7 @@ export default function TriageForm({
 }: Props) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-black">ตรวจเบื้องต้น/ส่งต่อแพทย์</CardTitle>
-      </CardHeader>
+
       <CardContent className="text-black">
         <div className="grid grid-cols-2 gap-1 mb-1">
           <Input
