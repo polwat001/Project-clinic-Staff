@@ -122,233 +122,275 @@ export default function PatientRegisterForm({
     <Card>
       <CardContent className="text-black">
         <form>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
             {/* คอลัมน์ซ้าย */}
-            <div className="space-y-1">
-              <Label htmlFor="hn" className="text-black text-xs">
-                HN (อัตโนมัติ)
-              </Label>
-              <Input
-                id="hn"
-                placeholder="ถูกสร้างอัตโนมัติ"
-                value={patient.hn ?? ""}
-                disabled
-                className="mb-1 text-black bg-gray-100 text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="prefix" className="text-black text-xs">
-                คำนำหน้า
-              </Label>
-              <Input
-                id="prefix"
-                placeholder="คำนำหน้า"
-                value={patient.prefix || ""}
-                onChange={(e) => setPatient({ ...patient, prefix: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="firstName" className="text-black text-xs">
-                ชื่อจริง
-              </Label>
-              <Input
-                id="firstName"
-                placeholder="ชื่อจริง"
-                value={patient.firstName || ""}
-                onChange={(e) => setPatient({ ...patient, firstName: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-0"
-              />
-
-              <Label htmlFor="lastName" className="text-black text-xs">
-                นามสกุล
-              </Label>
-              <Input
-                id="lastName"
-                placeholder="นามสกุล"
-                value={patient.lastName || ""}
-                onChange={(e) => setPatient({ ...patient, lastName: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="gender" className="text-black text-xs">
-                เพศ
-              </Label>
-              <select
-                id="gender"
-                value={patient.gender || ""}
-                onChange={(e) => setPatient({ ...patient, gender: e.target.value })}
-                className="mb-1 text-black text-xs h-4 px-2 py-0 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all w-full"
-              >
-                <option value="">-- เลือกเพศ --</option>
-                <option value="ชาย">ชาย</option>
-                <option value="หญิง">หญิง</option>
-                <option value="อื่นๆ">อื่นๆ</option>
-              </select>
-
-              <Label htmlFor="dob" className="text-black text-xs">
-                วันเกิด (YYYY-MM-DD)
-              </Label>
-              <Input
-                id="dob"
-                placeholder="วันเกิด (YYYY-MM-DD)"
-                value={patient.dob}
-                onChange={(e) => setPatient({ ...patient, dob: e.target.value })}
-                type="date"
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="phone" className="text-black text-xs">
-                เบอร์โทร
-              </Label>
-              <Input
-                id="phone"
-                placeholder="เบอร์โทร"
-                value={patient.phone ?? ""}
-                onChange={(e) => setPatient({ ...patient, phone: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="address" className="text-black text-xs">
-                ที่อยู่
-              </Label>
-              <Input
-                id="address"
-                placeholder="ที่อยู่"
-                value={patient.address || ""}
-                onChange={(e) => setPatient({ ...patient, address: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="province" className="text-black text-xs">
-                จังหวัด
-              </Label>
-              <Input
-                id="province"
-                placeholder="จังหวัด"
-                value={patient.province || ""}
-                onChange={(e) => setPatient({ ...patient, province: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="district" className="text-black text-xs">
-                อำเภอ/เขต
-              </Label>
-              <Input
-                id="district"
-                placeholder="อำเภอ/เขต"
-                value={patient.district || ""}
-                onChange={(e) => setPatient({ ...patient, district: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
+            <div className="flex flex-col gap-2">
+              <div>
+                <Label htmlFor="hn" className="block text-black text-xs mb-1">
+                  HN (อัตโนมัติ)
+                </Label>
+                <Input
+                  id="hn"
+                  placeholder="ถูกสร้างอัตโนมัติ"
+                  value={patient.hn ?? ""}
+                  disabled
+                  className="text-black bg-gray-100 text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="prefix" className="block text-black text-xs mb-1">
+                  คำนำหน้า
+                </Label>
+                <select
+                  id="prefix"
+                  value={patient.prefix || ""}
+                  onChange={e => setPatient({ ...patient, prefix: e.target.value })}
+                  className="text-black text-xs px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
+                >
+                  <option value="">-- เลือกคำนำหน้า --</option>
+                  <option value="นาย">นาย</option>
+                  <option value="นาง">นาง</option>
+                  <option value="นางสาว">นางสาว</option>
+                  <option value="เด็กชาย">เด็กชาย</option>
+                  <option value="เด็กหญิง">เด็กหญิง</option>
+             
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="firstName" className="block text-black text-xs mb-1">
+                  ชื่อจริง
+                </Label>
+                <Input
+                  id="firstName"
+                  placeholder="ชื่อจริง"
+                  value={patient.firstName || ""}
+                  onChange={(e) => setPatient({ ...patient, firstName: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName" className="block text-black text-xs mb-1">
+                  นามสกุล
+                </Label>
+                <Input
+                  id="lastName"
+                  placeholder="นามสกุล"
+                  value={patient.lastName || ""}
+                  onChange={(e) => setPatient({ ...patient, lastName: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="gender" className="block text-black text-xs mb-1">
+                  เพศ
+                </Label>
+                <select
+                  id="gender"
+                  value={patient.gender || ""}
+                  onChange={(e) => setPatient({ ...patient, gender: e.target.value })}
+                  className="text-black text-xs px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
+                >
+                  <option value="">-- เลือกเพศ --</option>
+                  <option value="ชาย">ชาย</option>
+                  <option value="หญิง">หญิง</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="dob" className="block text-black text-xs mb-1">
+                  วันเกิด (YYYY-MM-DD)
+                </Label>
+                <Input
+                  id="dob"
+                  placeholder="วันเกิด (YYYY-MM-DD)"
+                  value={patient.dob}
+                  onChange={(e) => setPatient({ ...patient, dob: e.target.value })}
+                  type="date"
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone" className="block text-black text-xs mb-1">
+                  เบอร์โทร
+                </Label>
+                <Input
+                  id="phone"
+                  placeholder="เบอร์โทร"
+                  value={patient.phone ?? ""}
+                  onChange={(e) => setPatient({ ...patient, phone: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="address" className="block text-black text-xs mb-1">
+                  ที่อยู่
+                </Label>
+                <Input
+                  id="address"
+                  placeholder="ที่อยู่"
+                  value={patient.address || ""}
+                  onChange={(e) => setPatient({ ...patient, address: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="province" className="block text-black text-xs mb-1">
+                  จังหวัด
+                </Label>
+                <Input
+                  id="province"
+                  placeholder="จังหวัด"
+                  value={patient.province || ""}
+                  onChange={(e) => setPatient({ ...patient, province: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="district" className="block text-black text-xs mb-1">
+                  อำเภอ/เขต
+                </Label>
+                <Input
+                  id="district"
+                  placeholder="อำเภอ/เขต"
+                  value={patient.district || ""}
+                  onChange={(e) => setPatient({ ...patient, district: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
             </div>
             {/* คอลัมน์ขวา */}
-            <div className="space-y-1">
-              <Label htmlFor="idCard" className="text-black text-xs">
-                เลขบัตรประชาชน
-              </Label>
-              <Input
-                id="idCard"
-                placeholder="เลขบัตรประชาชน"
-                value={patient.idCard || ""}
-                onChange={(e) => setPatient({ ...patient, idCard: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
+            <div className="flex flex-col gap-2">
+              <div>
+                <Label htmlFor="idCard" className="block text-black text-xs mb-1">
+                  เลขบัตรประชาชน
+                </Label>
+                <Input
+                  id="idCard"
+                  placeholder="เลขบัตรประชาชน"
+                  value={patient.idCard || ""}
+                  onChange={(e) => setPatient({ ...patient, idCard: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email" className="block text-black text-xs mb-1">
+                  อีเมล
+                </Label>
+                <Input
+                  id="email"
+                  placeholder="อีเมล"
+                  value={patient.email || ""}
+                  onChange={(e) => setPatient({ ...patient, email: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="rights" className="block text-black text-xs mb-1">
+                  สิทธิการรักษา
+                </Label>
+                <Input
+                  id="rights"
+                  placeholder="สิทธิการรักษา"
+                  value={patient.rights || ""}
+                  onChange={(e) => setPatient({ ...patient, rights: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lineId" className="block text-black text-xs mb-1">
+                  LINE ID
+                </Label>
+                <Input
+                  id="lineId"
+                  placeholder="LINE ID"
+                  value={patient.lineId || ""}
+                  onChange={(e) => setPatient({ ...patient, lineId: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="emergencyContact" className="block text-black text-xs mb-1">
+                  ชื่อผู้ติดต่อฉุกเฉิน
+                </Label>
+                <Input
+                  id="emergencyContact"
+                  placeholder="ชื่อผู้ติดต่อฉุกเฉิน"
+                  value={patient.emergencyContact || ""}
+                  onChange={(e) => setPatient({ ...patient, emergencyContact: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="emergencyPhone" className="block text-black text-xs mb-1">
+                  เบอร์โทรผู้ติดต่อฉุกเฉิน
+                </Label>
+                <Input
+                  id="emergencyPhone"
+                  placeholder="เบอร์โทรผู้ติดต่อฉุกเฉิน"
+                  value={patient.emergencyPhone || ""}
+                  onChange={(e) => setPatient({ ...patient, emergencyPhone: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="allergies" className="block text-black text-xs mb-1">
+                  ประวัติแพ้ยา
+                </Label>
+                <Input
+                  id="allergies"
+                  placeholder="ประวัติแพ้ยา"
+                  value={patient.allergies || ""}
+                  onChange={(e) => setPatient({ ...patient, allergies: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="pmh" className="block text-black text-xs mb-1">
+                  ประวัติการรักษา
+                </Label>
+                <Input
+                  id="pmh"
+                  placeholder="ประวัติการรักษา"
+                  value={patient.pmh || ""}
+                  onChange={(e) => setPatient({ ...patient, pmh: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="chief" className="block text-black text-xs mb-1">
+                  อาการสำคัญที่มาพบแพทย์
+                </Label>
+                <Input
+                  id="chief"
+                  placeholder="อาการสำคัญที่มาพบแพทย์"
+                  value={patient.chief || ""}
+                  onChange={(e) => setPatient({ ...patient, chief: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
+              <div>
+                <Label htmlFor="meds" className="block text-black text-xs mb-1">
+                  ยาที่ใช้ประจำ
+                </Label>
+                <Input
+                  id="meds"
+                  placeholder="ยาที่ใช้ประจำ"
+                  value={patient.meds || ""}
+                  onChange={(e) => setPatient({ ...patient, meds: e.target.value })}
+                  className="text-black text-xs px-2 py-1 w-full"
+                />
+              </div>
 
-              <Label htmlFor="email" className="text-black text-xs">
-                อีเมล
-              </Label>
-              <Input
-                id="email"
-                placeholder="อีเมล"
-                value={patient.email || ""}
-                onChange={(e) => setPatient({ ...patient, email: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="rights" className="text-black text-xs">
-                สิทธิการรักษา
-              </Label>
-              <Input
-                id="rights"
-                placeholder="สิทธิการรักษา"
-                value={patient.rights || ""}
-                onChange={(e) => setPatient({ ...patient, rights: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="lineId" className="text-black text-xs">
-                LINE ID
-              </Label>
-              <Input
-                id="lineId"
-                placeholder="LINE ID"
-                value={patient.lineId || ""}
-                onChange={(e) => setPatient({ ...patient, lineId: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="emergencyContact" className="text-black text-xs">
-                ผู้ติดต่อฉุกเฉิน
-              </Label>
-              <Input
-                id="emergencyContact"
-                placeholder="ผู้ติดต่อฉุกเฉิน"
-                value={patient.emergencyContact || ""}
-                onChange={(e) => setPatient({ ...patient, emergencyContact: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="emergencyPhone" className="text-black text-xs">
-                เบอร์ฉุกเฉิน
-              </Label>
-              <Input
-                id="emergencyPhone"
-                placeholder="เบอร์ฉุกเฉิน"
-                value={patient.emergencyPhone || ""}
-                onChange={(e) => setPatient({ ...patient, emergencyPhone: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="allergies" className="text-black text-xs">
-                แพ้ยา
-              </Label>
-              <Input
-                id="allergies"
-                placeholder="แพ้ยา"
-                value={patient.allergies ?? ""}
-                onChange={(e) => setPatient({ ...patient, allergies: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="pmh" className="text-black text-xs">
-                โรคประจำตัว
-              </Label>
-              <Input
-                id="pmh"
-                placeholder="โรคประจำตัว"
-                value={patient.pmh ?? ""}
-                onChange={(e) => setPatient({ ...patient, pmh: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
-
-              <Label htmlFor="meds" className="text-black text-xs">
-                ยาที่ใช้ประจำ
-              </Label>
-              <Input
-                id="meds"
-                placeholder="ยาที่ใช้ประจำ"
-                value={patient.meds ?? ""}
-                onChange={(e) => setPatient({ ...patient, meds: e.target.value })}
-                className="mb-1 text-black text-xs h-0 px-2 py-1"
-              />
             </div>
           </div>
-          <Button
-            type="button"
-            onClick={handleRegisterPatient}
-            className="mt-4 w-full text-sm h-2"
-          >
-            {isWalkIn ? "ลงทะเบียน Walk-in" : "ลงทะเบียน"}
-          </Button>
+          <div className="mt-4">
+            <Button
+              onClick={handleRegisterPatient}
+              className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-all"
+            >
+              {isWalkIn ? "ลงทะเบียนผู้ป่วยใหม่" : "บันทึกข้อมูลผู้ป่วย"}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

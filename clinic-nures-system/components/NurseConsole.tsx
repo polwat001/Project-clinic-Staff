@@ -735,7 +735,7 @@ const handleSendCase = async () => {
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col md:flex-row">
       {/* Sidebar เมนูขั้นตอน */}
-      <div className="w-full md:w-14 lg:w-20 min-h-[220px] md:min-h-screen bg-white shadow-xl flex flex-col p-4 gap-2 overflow-auto text-black">
+      <div className="w-full md:w-14 lg:w-20 min-h-[220px] md:min-h-screen bg-white shadow-xl rounded-2xl overflow-hidden flex flex-col p-4 gap-0 text-black">
         <div className="text-xl md:text-2xl font-bold text-black mb-4 text-center">เมนูระบบคลินิก</div>
         <Button
           variant={step === 1 ? "default" : "outline"}
@@ -885,8 +885,8 @@ const handleSendCase = async () => {
                   setSelectedAppointment(appt);
                   setStep(5);
                 }}
-                handleRemoveQueue={handleRemoveQueue}      // <--- เพิ่มตรงนี้
-    handleSkipQueue={handleSkipQueue}          // <--- เพิ่มตรงนี้
+                handleRemoveQueue={handleRemoveQueue}
+                handleSkipQueue={handleSkipQueue}
               />
             )}
             {step === 4 && (
@@ -924,52 +924,13 @@ const handleSendCase = async () => {
                 </Button>
               </>
             )}
-
-            {/* แสดงคิวที่รอหมอรับ */}
-            <div className="mb-6">
-              <div className="font-bold text-lg mb-2 text-blue-700">คิวที่รอหมอรับ</div>
-              {waitingForDoctorQueue.length === 0 ? (
-                <div className="text-gray-500">ไม่มีคิวที่รอหมอรับ</div>
-              ) : (
-                <div className="space-y-2">
-                  {waitingForDoctorQueue.map((q, idx) => (
-                    <div key={q.q} className="p-2 border rounded bg-blue-50 flex justify-between items-center">
-                      <div>
-                        <div className="font-bold">คิวที่ {q.q}</div>
-                        <div>ชื่อ: {q.name || '-'}</div>
-                        <div>HN: {q.hn || '-'}</div>
-                        <div>ประเภท: {q.type}</div>
-                        <div>ห้อง: {q.room}</div>
-                      </div>
-                      <div className="text-blue-600 font-bold">รอหมอรับ</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* แสดงคิวที่หมอกำลังรับอยู่ */}
-            <div className="mb-6">
-              <div className="font-bold text-lg mb-2 text-green-700">คิวที่หมอกำลังรับอยู่</div>
-              {inExamQueue.length === 0 ? (
-                <div className="text-gray-500">ไม่มีคิวที่หมอกำลังรับอยู่</div>
-              ) : (
-                <div className="space-y-2">
-                  {inExamQueue.map((q, idx) => (
-                    <div key={q.q} className="p-2 border rounded bg-green-50 flex justify-between items-center">
-                      <div>
-                        <div className="font-bold">คิวที่ {q.q}</div>
-                        <div>ชื่อ: {q.name || '-'}</div>
-                        <div>HN: {q.hn || '-'}</div>
-                        <div>ประเภท: {q.type}</div>
-                        <div>ห้อง: {q.room}</div>
-                      </div>
-                      <div className="text-green-600 font-bold">หมอกำลังรับ</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* เพิ่มระบบดูเวชระเบียน */}
+            {step === 6 && (
+              <CaseHistorySection
+                hn={patientState.hn}
+                patient={patientState}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
