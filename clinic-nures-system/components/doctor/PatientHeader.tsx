@@ -66,27 +66,53 @@ export default function PatientHeader({ patient, rightNode, onAskVitals }: Props
   const allergy = getAllergy(patient);
   const chronic = getChronic(patient);
 
+  // ดึงข้อมูลที่จำเป็นในการตรวจของหมอ
+  const doctorInfo = {
+    hn: patient.hn ?? "",
+    name: displayName,
+    dob: patient.dob ?? "",
+    age: typeof age === "number" ? age : "",
+    sex: displaySex,
+    phone: patient.phone ?? "",
+    allergy: allergy ?? "",
+    chronic: chronic ?? "",
+    address: patient.address ?? "",
+    cid: patient.cid ?? "",
+    insurance: patient.insurance ?? "",
+    // เพิ่ม field อื่นๆ ที่จำเป็นได้ที่นี่
+  };
+
   return (
     <div className="rounded-2xl border bg-white p-4">
       <div className="flex items-center justify-between gap-3">
         {/* ชื่อ + HN */}
         <div className="min-w-0">
-          <div className="text-xl font-semibold truncate">
-            🩺 {displayName}
-            {patient.hn && (
-              <span className="text-slate-400 text-base"> ({patient.hn})</span>
+          <div className="text-xl text-red-500 font-semibold truncate">
+            🩺 {doctorInfo.name}
+            {doctorInfo.hn && (
+              <span className="text-slate-400 text-black text-base"> ({doctorInfo.hn})</span>
             )}
           </div>
           <div className="mt-1 text-sm text-slate-600">
-            เกิด {safeFmtDateOnly(patient.dob)}
-            {typeof age === "number" && <> · {age} ปี</>}
-            {displaySex && <> · {displaySex}</>}
-            {patient.phone && <> · {patient.phone}</>}
+            เกิด {safeFmtDateOnly(doctorInfo.dob)}
+            {doctorInfo.age && <> · {doctorInfo.age} ปี</>}
+            {doctorInfo.sex && <> · {doctorInfo.sex}</>}
+            {doctorInfo.phone && <> · {doctorInfo.phone}</>}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            {allergy && <Badge tone="red">แพ้ยา: {allergy}</Badge>}
-            {chronic && <Badge tone="amber">โรคประจำตัว: {chronic}</Badge>}
+            {doctorInfo.allergy && <Badge tone="red">แพ้ยา: {doctorInfo.allergy}</Badge>}
+            {doctorInfo.chronic && <Badge tone="amber">โรคประจำตัว: {doctorInfo.chronic}</Badge>}
           </div>
+          {/* ตัวอย่างการแสดงข้อมูลเพิ่มเติม */}
+          {doctorInfo.address && (
+            <div className="mt-2 text-xs text-slate-500">ที่อยู่: {doctorInfo.address}</div>
+          )}
+          {doctorInfo.cid && (
+            <div className="mt-1 text-xs text-slate-500">เลขบัตรประชาชน: {doctorInfo.cid}</div>
+          )}
+          {doctorInfo.insurance && (
+            <div className="mt-1 text-xs text-slate-500">สิทธิ์การรักษา: {doctorInfo.insurance}</div>
+          )}
         </div>
 
         {/* ปุ่มลัดและ action ด้านขวา */}

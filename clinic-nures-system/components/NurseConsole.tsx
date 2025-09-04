@@ -733,149 +733,147 @@ const handleSendCase = async () => {
   const [smoking, setSmoking] = useState("");
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col md:flex-row">
-      {/* Sidebar เมนูขั้นตอน */}
-      <div className="w-full md:w-14 lg:w-20 min-h-[220px] md:min-h-screen bg-white shadow-xl rounded-2xl overflow-hidden flex flex-col p-4 gap-0 text-black">
-        <div className="text-xl md:text-2xl font-bold text-black mb-4 text-center">เมนูระบบคลินิก</div>
-        <Button
-          variant={step === 1 ? "default" : "outline"}
-          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 1 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(1)}
-        >
-          ลงทะเบียนผู้ป่วยใหม่
-        </Button>
-        <Button
-          variant={step === 2 ? "default" : "outline"}
-          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 2 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(2)}
-        >
-          ค้นหา/เลือกผู้ป่วยเก่า
-        </Button>
-
-        <Button
-          variant={step === 3 ? "default" : "outline"}
-          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(3)}
-        >
-          ดูรายการนัดหมาย
-        </Button>
-        <Button
-          variant={step === 4 ? "default" : "outline"}
-          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 5 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(4)}
-        >
-          กรอกอาการเบื้องต้น/วัด Vital Signs
-        </Button>
-        <Button
-          variant={step === 5 ? "default" : "outline"}
-          className={`w-full text-black bg-gray-500 font-semibold py-3 rounded-lg ${step === 6 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-          onClick={() => setStep(5  )}
-        >
-          ส่งเคสไปยังหมอ
-        </Button>
-      </div>
-      {/* Content ฝั่งขวา */}
-      <div className="flex-1 flex items-start p-0 overflow-auto">
-        <Card className="w-full max-w-none shadow-2xl rounded-none bg-white">
-          <CardHeader>
-            <CardTitle className="text-black text-xl md:text-2xl font-bold">
-              {step === 1 && "ลงทะเบียนผู้ป่วยใหม่"}
-              {step === 2 && "ค้นหา/เลือกผู้ป่วยเก่า"}
-              {step === 3 && "รายการนัดหมาย"}
-              {step === 4 && "กรอกอาการเบื้องต้น/วัด Vital Signs"}
-              {step === 5 && "ส่งเคสไปยังหมอ"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-black text-base">
-            {step === 1 && (
-              <PatientRegisterForm
-                patient={patient}
-                setPatient={setPatient}
-                isWalkIn={true}
-                handleRegisterPatient={() => setStep(3)}
+  <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col">
+    {/* ปุ่มเมนูขั้นตอนด้านบน */}
+    <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto flex flex-row p-2 gap-2 text-black justify-center">
+      <Button
+        variant={step === 1 ? "default" : "outline"}
+        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 1 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+        onClick={() => setStep(1)}
+      >
+        ลงทะเบียนผู้ป่วยใหม่
+      </Button>
+      <Button
+        variant={step === 2 ? "default" : "outline"}
+        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 2 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+        onClick={() => setStep(2)}
+      >
+        ค้นหา/เลือกผู้ป่วยเก่า
+      </Button>
+      <Button
+        variant={step === 3 ? "default" : "outline"}
+        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 3 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+        onClick={() => setStep(3)}
+      >
+        ดูรายการนัดหมาย
+      </Button>
+      <Button
+        variant={step === 4 ? "default" : "outline"}
+        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+        onClick={() => setStep(4)}
+      >
+        กรอกอาการเบื้องต้น/วัด Vital Signs
+      </Button>
+      <Button
+        variant={step === 5 ? "default" : "outline"}
+        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 5 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+        onClick={() => setStep(5)}
+      >
+        ส่งเคสไปยังหมอ
+      </Button>
+    </div>
+    {/* Content ฝั่งขวา */}
+    <div className="flex-1 flex items-start p-0 overflow-auto">
+      <Card className="w-full max-w-none shadow-2xl rounded-none bg-white">
+        <CardHeader>
+          <CardTitle className="text-black text-xl md:text-2xl font-bold">
+            {step === 1 && "ลงทะเบียนผู้ป่วยใหม่"}
+            {step === 2 && "ค้นหา/เลือกผู้ป่วยเก่า"}
+            {step === 3 && "รายการนัดหมาย"}
+            {step === 4 && "กรอกอาการเบื้องต้น/วัด Vital Signs"}
+            {step === 5 && "ส่งเคสไปยังหมอ"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-black text-base">
+          {step === 1 && (
+            <PatientRegisterForm
+              patient={patient}
+              setPatient={setPatient}
+              isWalkIn={true}
+              handleRegisterPatient={() => setStep(3)}
+            />
+          )}
+          {step === 2 && (
+            <div>
+              {/* ช่องค้นหา */}
+              <input
+                type="text"
+                className="border text-black px-2 py-1 rounded mb-2 w-full"
+                placeholder="ค้นหาด้วย HN, ชื่อ, นามสกุล, เลขบัตรประชาชน"
+                value={searchPatientText}
+                onChange={e => setSearchPatientText(e.target.value)}
               />
-            )}
-            {step === 2 && (
-              <div>
-                {/* ช่องค้นหา */}
-                <input
-                  type="text"
-                  className="border text-black px-2 py-1 rounded mb-2 w-full"
-                  placeholder="ค้นหาด้วย HN, ชื่อ, นามสกุล, เลขบัตรประชาชน"
-                  value={searchPatientText}
-                  onChange={e => setSearchPatientText(e.target.value)}
-                />
-                {/* รายการผู้ป่วยทั้งหมด */}
-                <div className="max-h-64 overflow-auto border rounded mb-4">
-                  {filteredRegisteredPatients.length === 0 && (
-                    <div className="p-4 text-gray-500">ไม่พบผู้ป่วย</div>
-                  )}
-                  {filteredRegisteredPatients.map(p => (
-                    <div
-                      key={p.hn}
-                      className={`p-2 cursor-pointer hover:bg-blue-50 ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
-                      onClick={() => handleSelectRegisteredPatient(p)}
-                    >
-                      <div className="font-bold text-black">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
-                      <div className="text-xs text-gray-600">
-                        HN: {p.hn} | เลขบัตร: {p.idCard} | เบอร์โทร: {p.phone} | วันเกิด: {p.dob} | เพศ: {p.gender} | สิทธิ: {p.rights}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* แสดงข้อมูลผู้ป่วยที่เลือก */}
-                {selectedRegisteredPatient && (
-                  <div className="bg-gray-100 text-black rounded-lg shadow p-4 mb-4">
-                    <div className="font-bold text-lg mb-2 text-black">
-                      {selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ""} ${selectedRegisteredPatient.lastName || ""}`.trim()}
-                    </div>
-                    <div className="text-black">HN: {selectedRegisteredPatient.hn}</div>
-                    <div className="text-black">เลขบัตรประชาชน: {selectedRegisteredPatient.idCard}</div>
-                    <div className="text-black">ชื่อ: {selectedRegisteredPatient.firstName} {selectedRegisteredPatient.lastName}</div>
-                    <div className="text-black">เพศ: {selectedRegisteredPatient.gender}</div>
-                    <div className="text-black">วันเกิด: {selectedRegisteredPatient.dob}</div>
-                    <div className="text-black">เพศ: {selectedRegisteredPatient.gender}</div>
-                    <div className="text-black">เบอร์โทร: {selectedRegisteredPatient.phone}</div>
-                    <div className="text-black">สิทธิการรักษา: {selectedRegisteredPatient.rights}</div>
-                    <div className="text-black">ที่อยู่: {selectedRegisteredPatient.address}</div>
-                    <div className="text-black">จังหวัด: {selectedRegisteredPatient.province}</div>
-                    <div className="text-black">อำเภอ: {selectedRegisteredPatient.district}</div>
-                    <div className="text-black">อีเมล: {selectedRegisteredPatient.email}</div>
-                    <div className="text-black">Line ID: {selectedRegisteredPatient.lineId}</div>
-                    <div className="text-black font-bold mt-2">ผู้ติดต่อฉุกเฉิน: {selectedRegisteredPatient.emergencyContact}</div>
-                    <div className="text-black">เบอร์ฉุกเฉิน: {selectedRegisteredPatient.emergencyPhone}</div>
-                    <div className="text-black font-bold mt-2">โรคประจำตัว: <span className="font-normal">{selectedRegisteredPatient.pmh}</span></div>
-                    <div className="text-black font-bold mt-2">แพ้ยา: <span className="font-normal">{selectedRegisteredPatient.allergies}</span></div>
-                    {/* ปุ่มสร้างนัดหมาย */}
-                    <div className="mt-4">
-                      <label className="block text-black mb-1">วันและเวลานัดหมาย</label>
-                      <input
-                        type="datetime-local"
-                        className="border px-2 py-1 rounded w-full text-black"
-                        value={appointmentDate}
-                        onChange={e => setAppointmentDate(e.target.value)}
-                      />
-                    </div>
-                    <button
-                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded mr-2"
-                      onClick={() => handleCreateAppointmentForRegistered(appointmentDate)}
-                    >
-                      สร้างนัดหมาย
-                    </button>
-                    {/* ปุ่ม walk-in */}
-                    <button
-                      className="mt-4 px-4 py-2 bg-green-500 text-white rounded"
-                      onClick={() => handleWalkInOldPatient(selectedRegisteredPatient)}
-                    >
-                      Walk-in และตรวจอาการเบื้องต้น
-                    </button>
-                  </div>
+              {/* รายการผู้ป่วยทั้งหมด */}
+              <div className="max-h-64 overflow-auto border rounded mb-4">
+                {filteredRegisteredPatients.length === 0 && (
+                  <div className="p-4 text-gray-500">ไม่พบผู้ป่วย</div>
                 )}
+                {filteredRegisteredPatients.map(p => (
+                  <div
+                    key={p.hn}
+                    className={`p-2 cursor-pointer hover:bg-blue-50 ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
+                    onClick={() => handleSelectRegisteredPatient(p)}
+                  >
+                    <div className="font-bold text-black">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
+                    <div className="text-xs text-gray-600">
+                      HN: {p.hn} | เลขบัตร: {p.idCard} | เบอร์โทร: {p.phone} | วันเกิด: {p.dob} | เพศ: {p.gender} | สิทธิ: {p.rights}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-            {step === 3 && (
-              <AppointmentList
-                appointments={filteredAppointments.map((a, idx) => ({
+              {/* แสดงข้อมูลผู้ป่วยที่เลือก */}
+              {selectedRegisteredPatient && (
+                <div className="bg-gray-100 text-black rounded-lg shadow p-4 mb-4">
+                  <div className="font-bold text-lg mb-2 text-black">
+                    {selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ""} ${selectedRegisteredPatient.lastName || ""}`.trim()}
+                  </div>
+                  <div className="text-black">HN: {selectedRegisteredPatient.hn}</div>
+                  <div className="text-black">เลขบัตรประชาชน: {selectedRegisteredPatient.idCard}</div>
+                  <div className="text-black">ชื่อ: {selectedRegisteredPatient.firstName} {selectedRegisteredPatient.lastName}</div>
+                  <div className="text-black">เพศ: {selectedRegisteredPatient.gender}</div>
+                  <div className="text-black">วันเกิด: {selectedRegisteredPatient.dob}</div>
+                  <div className="text-black">เพศ: {selectedRegisteredPatient.gender}</div>
+                  <div className="text-black">เบอร์โทร: {selectedRegisteredPatient.phone}</div>
+                  <div className="text-black">สิทธิการรักษา: {selectedRegisteredPatient.rights}</div>
+                  <div className="text-black">ที่อยู่: {selectedRegisteredPatient.address}</div>
+                  <div className="text-black">จังหวัด: {selectedRegisteredPatient.province}</div>
+                  <div className="text-black">อำเภอ: {selectedRegisteredPatient.district}</div>
+                  <div className="text-black">อีเมล: {selectedRegisteredPatient.email}</div>
+                  <div className="text-black">Line ID: {selectedRegisteredPatient.lineId}</div>
+                  <div className="text-black font-bold mt-2">ผู้ติดต่อฉุกเฉิน: {selectedRegisteredPatient.emergencyContact}</div>
+                  <div className="text-black">เบอร์ฉุกเฉิน: {selectedRegisteredPatient.emergencyPhone}</div>
+                  <div className="text-black font-bold mt-2">โรคประจำตัว: <span className="font-normal">{selectedRegisteredPatient.pmh}</span></div>
+                  <div className="text-black font-bold mt-2">แพ้ยา: <span className="font-normal">{selectedRegisteredPatient.allergies}</span></div>
+                  {/* ปุ่มสร้างนัดหมาย */}
+                  <div className="mt-4">
+                    <label className="block text-black mb-1">วันและเวลานัดหมาย</label>
+                    <input
+                      type="datetime-local"
+                      className="border px-2 py-1 rounded w-full text-black"
+                      value={appointmentDate}
+                      onChange={e => setAppointmentDate(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded mr-2"
+                    onClick={() => handleCreateAppointmentForRegistered(appointmentDate)}
+                  >
+                    สร้างนัดหมาย
+                  </button>
+                  {/* ปุ่ม walk-in */}
+                  <button
+                    className="mt-4 px-4 py-2 bg-green-500 text-white rounded"
+                    onClick={() => handleWalkInOldPatient(selectedRegisteredPatient)}
+                  >
+                    Walk-in และตรวจอาการเบื้องต้น
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {step === 3 && (
+            <AppointmentList
+              appointments={filteredAppointments.map((a, idx) => ({
       ...a,
       queueNo: idx + 1,
     }))}

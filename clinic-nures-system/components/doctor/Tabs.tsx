@@ -229,7 +229,7 @@ export default function Tabs(p: Props) {
   const PlaneIcon = () => (
     <svg
       viewBox="0 0 24 24"
-      className="w-4 h-4 mr-2"
+      className="w-2 h-2 mr-2"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -240,9 +240,9 @@ export default function Tabs(p: Props) {
   );
 
   return (
-    <div className="space-y-3 text-[15px] leading-[1.6]">
+    <div className="space-y-2 text-[15px] leading-[1.6] text-black gap-0 p-0">
       {/* Tabs header */}
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         {[
           { k: "latest", t: "เวชระเบียนล่าสุด" },
           { k: "exam", t: "ตรวจ/วินิจฉัย/แผน" },
@@ -252,7 +252,7 @@ export default function Tabs(p: Props) {
         ].map((x) => (
           <button
             key={x.k}
-            className={`px-3 py-2 rounded-xl border ${
+            className={`px-3 py-1 rounded-xl border ${
               tab === x.k
                 ? "bg-blue-600 text-white"
                 : "bg-white hover:bg-slate-50"
@@ -267,12 +267,12 @@ export default function Tabs(p: Props) {
       {/* ล่าสุด */}
       {tab === "latest" && (
         <Card>
-          <CardHeader>เยี่ยมล่าสุด</CardHeader>
-          <CardContent>
-            {p.loading && <div className="text-slate-500">กำลังโหลด…</div>}
+          <CardHeader className="text-black ">เยี่ยมล่าสุด</CardHeader>
+          <CardContent className="text-black">
+            {p.loading && <div className="text-slate-500 text-black">กำลังโหลด…</div>}
             {!p.loading &&
               (p.visits.length === 0 ? (
-                <div className="text-slate-500">ยังไม่มีเวชระเบียน</div>
+                <div className="text-slate-500 text-black">ยังไม่มีเวชระเบียน</div>
               ) : (
                 <VisitBlock v={p.visits[0]} />
               ))}
@@ -282,11 +282,11 @@ export default function Tabs(p: Props) {
 
       {/* ตรวจ/วินิจฉัย/แผน */}
       {tab === "exam" && (
-        <div className="grid md:grid-cols-2 gap-3">
+        <div className="grid md:grid-cols-2 gap-2 text-black">
           {/* vitals */}
           <Card className="md:col-span-2">
-            <CardHeader>สัญญาณชีพ (Vitals)</CardHeader>
-            <CardContent>
+            <CardHeader className="text-black">สัญญาณชีพ (Vitals)</CardHeader>
+            <CardContent className="text-black">
               {!p.vitals ? (
                 <div className="text-slate-500">ยังไม่มีการบันทึกสัญญาณชีพ</div>
               ) : (
@@ -312,16 +312,18 @@ export default function Tabs(p: Props) {
             </CardContent>
           </Card>
 
+          {/* ปรับขนาด Card ให้เล็กลง */}
           <Card>
             <CardHeader>อาการนำ (CC)</CardHeader>
             <CardContent>
               <Textarea
-                rows={4}
+                rows={2}
                 value={p.cc}
                 onChange={(e) => p.setCc(e.target.value)}
                 placeholder="เช่น ไอ เจ็บคอ 3 วัน มีไข้"
+                className="text-black text-sm"
               />
-              <div className="text-[11px] text-slate-500 mt-1 text-right">
+              <div className="text-[11px] text-slate-400 mt-1 text-right">
                 {(p.cc ?? "").length} ตัวอักษร
               </div>
             </CardContent>
@@ -331,10 +333,11 @@ export default function Tabs(p: Props) {
             <CardHeader>การวินิจฉัย</CardHeader>
             <CardContent>
               <Textarea
-                rows={4}
+                rows={2}
                 value={p.diag}
                 onChange={(e) => p.setDiag(e.target.value)}
                 placeholder="เช่น ความดันโลหิตสูง..."
+                className="text-black text-sm"
               />
               <div className="text-[11px] text-slate-500 mt-1 text-right">
                 {(p.diag ?? "").length} ตัวอักษร
@@ -346,10 +349,11 @@ export default function Tabs(p: Props) {
             <CardHeader>แผนการรักษา</CardHeader>
             <CardContent>
               <Textarea
-                rows={4}
+                rows={2}
                 value={p.plan}
                 onChange={(e) => p.setPlan(e.target.value)}
                 placeholder="คำสั่งตรวจ/ให้ยา/ติดตาม …"
+                className="text-black text-sm"
               />
               <div className="text-[11px] text-slate-500 mt-1 text-right">
                 {(p.plan ?? "").length} ตัวอักษร
@@ -361,10 +365,11 @@ export default function Tabs(p: Props) {
             <CardHeader>คำแนะนำ</CardHeader>
             <CardContent>
               <Textarea
-                rows={4}
+                rows={2}
                 value={p.advice}
                 onChange={(e) => p.setAdvice(e.target.value)}
                 placeholder="พักผ่อน ดื่มน้ำมากๆ …"
+                className="text-black text-sm"
               />
               <div className="text-[11px] text-slate-500 mt-1 text-right">
                 {(p.advice ?? "").length} ตัวอักษร
@@ -376,10 +381,11 @@ export default function Tabs(p: Props) {
             <CardHeader>ROS</CardHeader>
             <CardContent>
               <Textarea
-                rows={4}
+                rows={2}
                 value={p.ros}
                 onChange={(e) => p.setRos(e.target.value)}
                 placeholder="ระบบต่างๆ …"
+                className="text-black text-sm"
               />
               <div className="text-[11px] text-slate-500 mt-1 text-right">
                 {(p.ros ?? "").length} ตัวอักษร
@@ -391,10 +397,11 @@ export default function Tabs(p: Props) {
             <CardHeader>ตรวจร่างกาย (PE)</CardHeader>
             <CardContent>
               <Textarea
-                rows={4}
+                rows={2}
                 value={p.pe}
                 onChange={(e) => p.setPe(e.target.value)}
                 placeholder="GA/HEENT/Chest/Cardiac/Abd/Ext/Neuro …"
+                className="text-black text-sm"
               />
               <div className="text-[11px] text-slate-500 mt-1 text-right">
                 {(p.pe ?? "").length} ตัวอักษร
@@ -402,14 +409,15 @@ export default function Tabs(p: Props) {
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-2 p-2">
             <CardHeader>ประวัติการเจ็บป่วย/ยา/แพ้ (HX)</CardHeader>
             <CardContent>
               <Textarea
-                rows={4}
+                rows={2}
                 value={p.hx}
                 onChange={(e) => p.setHx(e.target.value)}
                 placeholder="ประวัติปัจจุบัน/อดีต/ยาที่ใช้/แพ้ยา ฯลฯ"
+                className="text-black text-sm"
               />
               <div className="text-[11px] text-slate-500 mt-1 text-right">
                 {(p.hx ?? "").length} ตัวอักษร
@@ -417,7 +425,7 @@ export default function Tabs(p: Props) {
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-2 p-2">
             <CardHeader>สรุปฉบับผู้ป่วย</CardHeader>
             <CardContent>
               <div className="text-slate-700 whitespace-pre-wrap">
@@ -474,7 +482,7 @@ export default function Tabs(p: Props) {
 
       {/* ใบสั่งยา */}
       {tab === "rx" && (
-        <div className="grid md:grid-cols-2 gap-3">
+        <div className="grid md:grid-cols-2 gap-1 text-black">
           {/* ซ้าย: ค้นหา/เพิ่มยา */}
           <Card>
             <CardHeader>รายการยา</CardHeader>
@@ -641,7 +649,7 @@ export default function Tabs(p: Props) {
                   </div>
 
                   {/* 🍽️ เวลากับอาหาร */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                     <div className="md:col-span-1">
                       <label className="block text-xs text-slate-600 mb-1">
                         เวลากับอาหาร
@@ -759,8 +767,8 @@ export default function Tabs(p: Props) {
      {/* นัดหมาย */}
 {tab === "appts" && (
   <Card>
-    <CardHeader>นัดหมาย</CardHeader>
-    <CardContent className="space-y-4">
+    <CardHeader className="text-black">นัดหมาย</CardHeader>
+    <CardContent className="space-y-4 text-black">
       {/* แถวบน: ปฏิทิน Google + ฟอร์มจอง */}
       <div className="grid md:grid-cols-2 gap-4">
         {/* ซ้าย: Google Calendar (ฝัง) */}
@@ -822,10 +830,10 @@ export default function Tabs(p: Props) {
 
 {tab === "history" && (
   <Card>
-    <CardHeader>เวชระเบียนทั้งหมด</CardHeader>
-    <CardContent className="space-y-3">
+    <CardHeader className="text-black">เวชระเบียนทั้งหมด</CardHeader>
+    <CardContent className="space-y-3 text-black">
       {p.visits.length === 0 && (
-        <div className="text-slate-500">ยังไม่มีเวชระเบียน</div>
+        <div className="text-slate-500 text-black">ยังไม่มีเวชระเบียน</div>
       )}
       {p.visits.map((v) => (
         <VisitBlock
@@ -839,4 +847,4 @@ export default function Tabs(p: Props) {
 
     </div>
   );      
-}                                      
+}

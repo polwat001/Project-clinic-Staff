@@ -208,91 +208,79 @@ export default function DoctorConsole() {
     : patients;
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <header className="flex items-center justify-between mb-4">
+    <div className="min-h-screen w-full bg-white flex flex-col items-center">
+      <div className="w-full max-w-[1800px] px-1 py-1">
+        <header className="flex items-center justify-between mb-4 w-full">
           <div className="text-2xl font-semibold text-black">Doctor System</div>
           <div className="text-sm text-slate-500">
             {new Date().toLocaleString("th-TH")}
           </div>
         </header>
-        {errorMsg && (
-          <div className="mb-3 text-sm text-red-600">{errorMsg}</div>
-        )}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-[400px_1fr] gap-2 w-full">
           {/* Sidebar */}
-          <Card className="md:col-span-1 bg-[#f8fafc] border rounded-2xl">
-            <CardHeader>
-              <div className="font-medium text-black">ค้นหาผู้ป่วย</div>
-              <div className="mt-3">
-                <Input
-                  placeholder="พิมพ์ชื่อ, HN, เบอร์"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="bg-white text-black border rounded-xl px-4 py-2"
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-[70vh] overflow-auto">
-                {loadingPatients && (
-                  <div className="text-sm text-slate-500">
-                    กำลังโหลดรายชื่อผู้ป่วย…
-                  </div>
-                )}
-                {!loadingPatients &&
-                  filtered.map((p) => (
-                    <div
-                      key={p.id}
-                      className={`p-3 border rounded-xl cursor-pointer hover:bg-blue-50 ${
-                        selected?.id === p.id ? "bg-blue-100" : "bg-white"
-                      }`}
-                      onClick={() => setSelected(p)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-black">{displayName(p)}</div>
-                        <div className="text-xs text-blue-700">{p.hn ?? "-"}</div>
-                      </div>
-                      <div className="text-xs text-slate-600">
-                        เกิด{" "}
-                        {p.dob
-                          ? new Date(p.dob).toLocaleDateString("th-TH", {
-                              dateStyle: "medium",
-                            })
-                          : "-"}{" "}
-                        · {displaySex(p)} · {p.phone || "-"}
-                      </div>
-                      {p.allergy && (
-                        <div className="mt-1 text-xs text-red-600 bg-red-100 rounded px-2 py-1 inline-block">
-                          แพ้ยา: {p.allergy}
-                        </div>
-                      )}
-                      {p.pmh && (
-                        <div className="mt-1 text-xs text-yellow-700 bg-yellow-100 rounded px-2 py-1 inline-block">
-                          โรคประจำตัว: {p.pmh}
-                        </div>
-                      )}
+          <div className="bg-[#f8fafc] rounded-2xl border p-1 flex flex-col min-h-[400px] max-h-[80vh]">
+            <div className="font-semibold text-black mb-2">ค้นหาผู้ป่วย</div>
+            <Input
+              placeholder="พิมพ์ชื่อ, HN, เบอร์"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="bg-white text-black border rounded-xl px-3 py-2 mb-2 text-base"
+            />
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {loadingPatients && (
+                <div className="text-sm text-slate-500 text-black">
+                  กำลังโหลดรายชื่อผู้ป่วย…
+                </div>
+              )}
+              {!loadingPatients &&
+                filtered.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`p-2 border rounded-lg cursor-pointer hover:bg-blue-50 ${
+                      selected?.id === p.id ? "bg-blue-100" : "bg-white"
+                    } text-black`}
+                    onClick={() => setSelected(p)}
+                    style={{ fontSize: "0.95rem" }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold text-black truncate">{displayName(p)}</div>
+                      <div className="text-xs text-blue-700">{p.hn ?? "-"}</div>
                     </div>
-                  ))}
-                {!loadingPatients && filtered.length === 0 && (
-                  <div className="text-sm text-slate-500">ไม่พบผู้ป่วย</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          {/* Main */}
-          <div className="md:col-span-2 space-y-4">
-            {!selected ? (
-              <Card>
-                <CardContent>
-                  <div className="py-16 text-center text-slate-500">
-                    เลือกผู้ป่วยทางซ้ายเพื่อเริ่มต้น
+                    <div className="text-xs text-slate-600 text-black truncate">
+                      เกิด{" "}
+                      {p.dob
+                        ? new Date(p.dob).toLocaleDateString("th-TH", {
+                            dateStyle: "medium",
+                          })
+                        : "-"}{" "}
+                      · {displaySex(p)} · {p.phone || "-"}
+                    </div>
+                    {p.allergy && (
+                      <div className="mt-1 text-xs text-red-600 bg-red-100 rounded px-2 py-1 inline-block text-black">
+                        แพ้ยา: {p.allergy}
+                      </div>
+                    )}
+                    {p.pmh && (
+                      <div className="mt-1 text-xs text-yellow-700 bg-yellow-100 rounded px-2 py-1 inline-block text-black">
+                        โรคประจำตัว: {p.pmh}
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              {!loadingPatients && filtered.length === 0 && (
+                <div className="text-sm text-slate-500 text-black">ไม่พบผู้ป่วย</div>
+              )}
+            </div>
+          </div>
+          {/* Main */}
+          <div className="bg-white rounded-2xl border p-2 min-h-[1600px] flex flex-col w-full">
+            {!selected ? (
+              <div className="flex items-center justify-center h-full text-slate-500 text-lg">
+                เลือกผู้ป่วยทางซ้ายเพื่อเริ่มต้น
+              </div>
             ) : (
               <>
-                <PatientHeader patient={selected} className="bg-white border rounded-2xl" />
+                <PatientHeader patient={selected} className="bg-white border rounded-2xl mb-4" />
                 <Tabs
                   patient={selected}
                   visits={visits}
