@@ -51,7 +51,14 @@ export default function QueueBoard({
                 <Button size="sm" variant="secondary" onClick={e => { e.stopPropagation(); handleSkipQueue(item); }}>
                   ข้าม
                 </Button>
-                <Button size="sm" variant="destructive" onClick={e => { e.stopPropagation(); handleRemoveQueue(item); }}>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={async e => {
+                    e.stopPropagation();
+                    await handleRemoveQueue(item); // ให้ handleRemoveQueue ลบจากฐานข้อมูลด้วย
+                  }}
+                >
                   ลบ
                 </Button>
               </div>
@@ -61,4 +68,9 @@ export default function QueueBoard({
       </CardContent>
     </Card>
   );
+}
+
+async function handleRemoveQueue(item: QueueItem) {
+  await fetch(`/api/queue/${item.q}`, { method: "DELETE" }); // ตัวอย่าง API
+  // จากนั้นอัปเดต state queue ใน frontend
 }

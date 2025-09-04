@@ -14,7 +14,7 @@ export function CardTitle(props) {
 }
 
 export function CardContent(props) {
-  return <div>{props.children}</div>;
+  return <div className="p-1 border-b bg-slate-50 rounded-t-2xl-black ">{props.children}</div>;
 }
 export function CardFooter(props) {
   return <div className="mt-4 text-right">{props.children}</div>;

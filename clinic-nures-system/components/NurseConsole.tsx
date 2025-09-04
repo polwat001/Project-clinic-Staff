@@ -544,6 +544,7 @@ useEffect(() => {
     if (!error && data) {
       setRegisteredPatients(
         data.map((row: any) => ({
+          id: row.id, // <<--- เพิ่มบรรทัดนี้
           hn: row.hn ?? '',
           name: row.name ?? `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim(),
           phone: row.phone ?? '',
@@ -593,6 +594,7 @@ const handleSelectRegisteredPatient = (p: Patient) => {
   setSelectedRegisteredPatient(p);
   setPatientState({
     ...patient,
+    id: p.id, // <<--- เพิ่มบรรทัดนี้
     hn: p.hn,
     name: p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim(),
     phone: p.phone,
@@ -675,10 +677,15 @@ const handleCreateAppointmentForRegistered = async (dateStr?: string) => {
 const handleWalkInOldPatient = (patient: Patient) => {
   setPatientState({
     ...patient,
+    id: patient.id, // <<--- เพิ่มบรรทัดนี้
     urgency: 'P3',
     apptId: '',
-    chief: '',
-    additionalSymptom: ''
+    chief: patient.chief || '',
+    additionalSymptom: patient.additionalSymptom || '',
+    allergies: patient.allergies || '',
+    pmh: patient.pmh || '',
+    meds: patient.meds || '',
+    // เพิ่ม field อื่นๆ ที่จำเป็น
   });
   setStep(4); // ไปกรอกอาการเบื้องต้น/วัด Vital Signs
 };
