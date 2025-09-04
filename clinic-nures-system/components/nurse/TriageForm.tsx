@@ -18,6 +18,10 @@ interface Vitals {
 interface Patient {
   hn: string;
   name: string;
+  first_name: string; 
+  last_name: string;
+  prefix: string;
+  idCard?: string;
   phone: string;
   dob: string;
   apptId: string;
@@ -82,53 +86,79 @@ export default function TriageForm({
 }: Props) {
   return (
     <Card>
-
       <CardContent className="text-black">
+        {/* เพิ่มช่องแสดง HN และชื่อ-นามสกุลที่เลือก */}
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-black font-bold mb-1">HN</label>
+            <Input
+              value={patient.hn || ""}
+              readOnly
+              className="text-black bg-gray-100"
+              placeholder="HN"
+            />
+          </div>
+          <div>
+            <label className="block text-black font-bold mb-1">ชื่อ-นามสกุล</label>
+            <Input
+              value={
+                [
+                  patient.prefix || "",
+                  patient.first_name || "",
+                  patient.last_name || ""
+                ].filter(Boolean).join(" ")
+              }
+              readOnly
+              className="text-black bg-gray-100"
+              placeholder="ชื่อ-นามสกุล"
+            />
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-1 mb-1">
           <Input
-            placeholder="BP Systolic"
+            placeholder="BP Systolic (90-140 mmHg)"
             value={vitals.sys}
             onChange={e => setVitals({ ...vitals, sys: e.target.value })}
             className="text-black"
           />
           <Input
-            placeholder="BP Diastolic"
+            placeholder="BP Diastolic (60-90 mmHg)"
             value={vitals.dia}
             onChange={e => setVitals({ ...vitals, dia: e.target.value })}
             className="text-black"
           />
           <Input
-            placeholder="HR"
+            placeholder="HR (60-100 ครั้ง/นาที)"
             value={vitals.hr}
             onChange={e => setVitals({ ...vitals, hr: e.target.value })}
             className="text-black"
           />
           <Input
-            placeholder="RR"
+            placeholder="RR (12-20 ครั้ง/นาที)"
             value={vitals.rr}
             onChange={e => setVitals({ ...vitals, rr: e.target.value })}
             className="text-black"
           />
           <Input
-            placeholder="Temp"
+            placeholder="Temp (36.0-37.5 °C)"
             value={vitals.temp}
             onChange={e => setVitals({ ...vitals, temp: e.target.value })}
             className="text-black"
           />
           <Input
-            placeholder="SpO2"
+            placeholder="SpO2 (95-100%)"
             value={vitals.spo2}
             onChange={e => setVitals({ ...vitals, spo2: e.target.value })}
             className="text-black"
           />
           <Input
-            placeholder="น้ำหนัก (kg)"
+            placeholder="น้ำหนัก (kg) ตามเกณฑ์อายุ"
             value={vitals.wt}
             onChange={e => setVitals({ ...vitals, wt: e.target.value })}
             className="text-black"
           />
           <Input
-            placeholder="ส่วนสูง (cm)"
+            placeholder="ส่วนสูง (cm) ตามเกณฑ์อายุ"
             value={vitals.ht}
             onChange={e => setVitals({ ...vitals, ht: e.target.value })}
             className="text-black"
@@ -138,13 +168,29 @@ export default function TriageForm({
           BMI: <Badge>{bmiDerived || "-"}</Badge>
         </div>
         <div className="mb-2 text-black">
-          {flags.length > 0 && (
+          {flags.length > 0 && ( 
             <div>
               {flags.map(flag => (
                 <Badge key={flag} variant="destructive" className="mr-1">{flag}</Badge>
               ))}
             </div>
           )}
+        </div>
+                {/* เกณฑ์ค่าต่างๆ */}
+        <div className="mt-4 p-3 bg-blue-50 rounded text-sm text-black">
+          <div className="font-bold mb-2">เกณฑ์ค่าปกติ Vital Signs</div>
+          <ul className="list-disc pl-5">
+            <li>BP (ความดันโลหิต): 90-140 / 60-90 mmHg</li>
+            <li>HR (ชีพจร): 60-100 ครั้ง/นาที</li>
+            <li>RR (อัตราการหายใจ): 12-20 ครั้ง/นาที</li>
+            <li>Temp (อุณหภูมิ): 36.0-37.5 °C</li>
+            <li>SpO₂ (ออกซิเจนในเลือด): 95-100%</li>
+            <li>น้ำหนัก/ส่วนสูง: ตามเกณฑ์อายุ</li>
+            <li>BMI: 18.5-24.9 (ปกติ)</li>
+          </ul>
+          <div className="mt-2 text-xs text-slate-600">
+            * หากค่าผิดปกติควรแจ้งแพทย์ทันที
+          </div>
         </div>
         <Input
           placeholder="อาการเบื้องต้น"
@@ -155,33 +201,107 @@ export default function TriageForm({
         <div className="mb-2 flex gap-4">
           <div className="flex-1">
             <label className="block text-black font-bold mb-1">ดื่มสุรา</label>
-            <select
-              className="border rounded px-2 py-1 text-black w-full"
-              value={drinking}
-              onChange={e => setDrinking(e.target.value)}
-            >
-              <option value="">เลือก</option>
-              <option value="ไม่ดื่ม">ไม่ดื่ม</option>
-              <option value="ดื่ม">ดื่ม</option>
-            </select>
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-2 text-black">
+                <input
+                  type="checkbox"
+                  checked={drinking === "ดื่ม"}
+                  onChange={e => setDrinking(e.target.checked ? "ดื่ม" : "")}
+                />
+                ดื่ม
+              </label>
+              <label className="flex items-center gap-2 text-black">
+                <input
+                  type="checkbox"
+                  checked={drinking === "ไม่ดื่ม"}
+                  onChange={e => setDrinking(e.target.checked ? "ไม่ดื่ม" : "")}
+                />
+                ไม่ดื่ม
+              </label>
+              <label className="flex items-center gap-2 text-black">
+                <input
+                  type="checkbox"
+                  checked={drinking === "นานๆครั้ง"}
+                  onChange={e => setDrinking(e.target.checked ? "นานๆครั้ง" : "")}
+                />
+                นานๆครั้ง
+              </label>
+            </div>
           </div>
           <div className="flex-1">
             <label className="block text-black font-bold mb-1">สูบบุหรี่</label>
-            <select
-              className="border rounded px-2 py-1 text-black w-full"
-              value={smoking}
-              onChange={e => setSmoking(e.target.value)}
-            >
-              <option value="">เลือก</option>
-              <option value="ไม่สูบ">ไม่สูบ</option>
-              <option value="สูบ">สูบ</option>
-            </select>
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-2 text-black">
+                <input
+                  type="checkbox"
+                  checked={smoking === "สูบ"}
+                  onChange={e => setSmoking(e.target.checked ? "สูบ" : "")}
+                />
+                สูบ
+              </label>
+              <label className="flex items-center gap-2 text-black">
+                <input
+                  type="checkbox"
+                  checked={smoking === "ไม่สูบ"}
+                  onChange={e => setSmoking(e.target.checked ? "ไม่สูบ" : "")}
+                />
+                ไม่สูบ
+              </label>
+              <label className="flex items-center gap-2 text-black">
+                <input
+                  type="checkbox"
+                  checked={smoking === "สูบไม่บ่อย"}
+                  onChange={e => setSmoking(e.target.checked ? "สูบไม่บ่อย" : "")}
+                />
+                สูบไม่บ่อย/นานๆครั้ง
+              </label>
+            </div>
           </div>
         </div>
         <div className="flex gap-2 mt-2">
-          <Button className="text-black" onClick={handleSaveVitals}>บันทึก Vital Signs</Button>
-          <Button className="text-black" onClick={advanceToDoctor}>ส่งต่อแพทย์</Button>
-          <Button variant="secondary" className="text-black" onClick={handleQuickWalkIn}>Walk-in</Button>
+          <Button
+  className="text-black"
+  onClick={async () => {
+    // สร้าง payload สำหรับบันทึก
+    const payload = {
+      hn: patient.hn,
+      name:
+        patient.name && patient.name.trim()
+          ? patient.name.trim()
+          : [
+              patient.prefix || "",
+              patient.first_name || patient.first_name || "",
+              patient.last_name || patient.last_name || ""
+            ].filter(Boolean).join(" ").trim(),
+      sys: Number(vitals.sys) || null,
+      dia: Number(vitals.dia) || null,
+      hr: Number(vitals.hr) || null,
+      rr: Number(vitals.rr) || null,
+      temp_c: Number(vitals.temp) || null,
+      spo2: Number(vitals.spo2) || null,
+      weight_kg: Number(vitals.wt) || null,
+      height_cm: Number(vitals.ht) || null,
+      bmi: Number(bmiDerived) || null,
+      drinking,
+      smoking,
+    };
+    console.log("payload:", payload);
+    await fetch("/api/vitals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    handleSaveVitals();
+  }}
+>
+  บันทึก Vital Signs
+</Button>
+          <Button className="text-black" variant="outline" onClick={handleQuickWalkIn} disabled={!selected || !clientTime}>
+            เพิ่ม Walk-in & เข้าคิว
+          </Button>
+          <Button className="text-black" variant="secondary" onClick={advanceToDoctor} disabled={!selected || !clientTime}>
+            ส่งต่อแพทย์
+          </Button>
         </div>
       </CardContent>
     </Card>
