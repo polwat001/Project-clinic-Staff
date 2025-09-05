@@ -42,28 +42,30 @@ function RegisterStaffForm({ onBack, onRegister }: { onBack: () => void; onRegis
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300">
-      <div className="w-screen h-screen flex flex-col justify-center items-center p-8 bg-white shadow-lg border border-blue-200">
-        <div className="flex flex-col items-center mb-6">
-          <img src="/globe.svg" alt="logo" className="w-16 h-16 mb-2" />
-          <h2 className="text-2xl font-bold text-blue-700 mb-2">ลงทะเบียนเจ้าพนักงาน</h2>
+    <div className="fixed inset-0 flex p-2 gap-1 items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300">
+      <div className="w-[740px] max-w-full flex flex-col justify-center items-center p-2 bg-white shadow-lg border border-blue-200">
+        <div className="flex flex-col items-center mb-2">
+          <img src="/globe.svg" alt="logo" className="w-6 h-6 mb-2" />
+          <h2 className="text-xl font-bold text-blue-700 mb-2">ลงทะเบียนเจ้าพนักงาน</h2>
           <p className="text-gray-500 text-sm">กรุณากรอกข้อมูลเจ้าพนักงาน</p>
         </div>
+        {error && <div className="text-red-600 mt-1 text-center">{error}</div>}
+        {success && <div className="text-green-600 mt-1 text-center">ลงทะเบียนสำเร็จ!</div>}
         <input
-          className="mb-3 w-80 border border-blue-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
+          className="mb-2 w-full border border-blue-300 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
           placeholder="ชื่อผู้ใช้"
           value={username}
           onChange={e => setUsername(e.target.value)}
         />
         <input
-          className="mb-3 w-80 border border-blue-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
+          className="mb-2 w-full border border-blue-300 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
           type="password"
           placeholder="รหัสผ่าน"
           value={password}
           onChange={e => setPassword(e.target.value)}
         />
         <select
-          className="mb-3 w-80 border border-blue-300 px-3 py-2 rounded text-black"
+          className="mb-2 w-full border border-blue-300 px-2 py-1 rounded text-black"
           value={role}
           onChange={e => setRole(e.target.value)}
         >
@@ -71,19 +73,17 @@ function RegisterStaffForm({ onBack, onRegister }: { onBack: () => void; onRegis
           <option value="nurse">พยาบาล</option>
         </select>
         <button
-          className="w-80 bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold transition mb-2"
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-1 rounded font-semibold transition mb-2"
           onClick={handleRegister}
         >
           ลงทะเบียน
         </button>
         <button
-          className="w-80 bg-gray-300 hover:bg-gray-400 text-black py-2 rounded font-semibold transition"
+          className="w-full bg-gray-300 hover:bg-gray-400 text-black py-1 rounded font-semibold transition"
           onClick={onBack}
         >
           กลับสู่หน้าเข้าสู่ระบบ
         </button>
-        {error && <div className="text-red-600 mt-4 text-center">{error}</div>}
-        {success && <div className="text-green-600 mt-4 text-center">ลงทะเบียนสำเร็จ!</div>}
       </div>
     </div>
   );
@@ -111,33 +111,33 @@ function LoginForm({ setUser, onRegisterStaff }: { setUser: (u: { username: stri
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300">
-      <div className="w-screen h-screen flex flex-col justify-center items-center p-8 bg-white shadow-lg border border-blue-200">
-        <div className="flex flex-col items-center mb-6">
-          <img src="/globe.svg" alt="logo" className="w-16 h-16 mb-2" />
-          <h2 className="text-2xl font-bold text-blue-700 mb-2">เข้าสู่ระบบคลินิก</h2>
+      <div className="w-[740px] max-w-full flex flex-col justify-center items-center p-2  bg-white shadow-lg border border-blue-200 rounded-lg">
+        <div className="flex flex-col items-center mb-1">
+          <img src="/globe.svg" alt="logo" className="w-6 h-6 mb-1" />
+          <h2 className="text-2xl font-bold text-blue-700 mb-1">เข้าสู่ระบบคลินิก</h2>
           <p className="text-gray-500 text-sm">กรุณากรอกชื่อผู้ใช้และรหัสผ่าน</p>
         </div>
         <input
-          className="mb-3 w-80 border border-blue-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
+          className="mb-3 w-full border border-blue-300 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
           placeholder="ชื่อผู้ใช้"
           value={username}
           onChange={e => setUsername(e.target.value)}
         />
         <input
-          className="mb-3 w-80 border border-blue-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
+          className="mb-3 w-full border border-blue-300 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-black"
           type="password"
           placeholder="รหัสผ่าน"
           value={password}
           onChange={e => setPassword(e.target.value)}
         />
         <button
-          className="w-80 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold transition"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 rounded font-semibold transition"
           onClick={handleLogin}
         >
           เข้าสู่ระบบ
         </button>
         <button
-          className="w-80 bg-green-500 hover:bg-green-600 text-white py-2 rounded font-semibold transition mt-2"
+          className="w-full bg-green-500 hover:bg-green-600 text-white py-1 rounded font-semibold transition mt-2"
           onClick={onRegisterStaff}
         >
           ลงทะเบียนเจ้าพนักงาน
