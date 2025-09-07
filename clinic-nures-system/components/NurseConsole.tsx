@@ -954,7 +954,7 @@ const [selectedHistoryPatient, setSelectedHistoryPatient] = useState<Patient | n
             {step === 6 && (
   <div className="flex gap-4">
     {/* ฝั่งซ้าย: ค้นหาและเลือกผู้ป่วย */}
-    <div className="w-80 min-w-[220px] max-h-[70vh] overflow-auto bg-gray-50 rounded-lg shadow p-3">
+    <div className="w-30 min-w-[220px] max-h-[70vh] overflow-auto bg-gray-50 rounded-lg shadow p-3">
       <Input
         placeholder="ค้นหาด้วย HN, ชื่อ, นามสกุล, เลขบัตร"
         value={searchHistoryText}
@@ -992,7 +992,8 @@ const [selectedHistoryPatient, setSelectedHistoryPatient] = useState<Patient | n
         <CaseHistorySection
           hn={selectedHistoryPatient.hn}
           patient={selectedHistoryPatient}
-          casesFromDoctor={casesFromDoctor ?? []} // <--- เพิ่มบรรทัดนี้
+          casesFromDoctor={casesFromDoctor ?? []}
+          casesSent={casesSent ?? []}   // <-- เพิ่มบรรทัดนี้
         />
       ) : (
         <div className="text-gray-400 text-center mt-12">กรุณาเลือกผู้ป่วยเพื่อดูประวัติการรักษา</div>

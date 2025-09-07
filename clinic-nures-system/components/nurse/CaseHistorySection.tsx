@@ -23,14 +23,18 @@ interface DoctorDiagnosis {
 interface CaseHistorySectionProps {
   hn: string;
   patient: any;
-  casesFromDoctor?: any[]; // อาจเป็น DoctorDiagnosis[] ก็ได้
+  casesFromDoctor?: any[];
+  casesSent?: any[]; // เพิ่ม prop นี้
 }
 
 export default function CaseHistorySection({
   hn,
   patient,
-  casesFromDoctor = [], // <--- เพิ่ม default value ตรงนี้
+  casesFromDoctor = [],
+  casesSent = [], // เพิ่ม default value
 }: CaseHistorySectionProps) {
+  const [selectedCase, setSelectedCase] = React.useState<any>(null); // เพิ่ม state นี้
+
   return (
     <Card>
       <CardHeader>
@@ -67,3 +71,4 @@ export default function CaseHistorySection({
     </Card>
   );
 }
+
