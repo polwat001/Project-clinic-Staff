@@ -90,7 +90,7 @@ export default function TriageForm({
         {/* เพิ่มช่องแสดง HN และชื่อ-นามสกุลที่เลือก */}
         <div className="mb-2 grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-black font-bold mb-1">HN</label>
+            <label className="block text-black font-bold mb-0">HN</label>
             <Input
               value={patient.hn || ""}
               readOnly
@@ -99,7 +99,7 @@ export default function TriageForm({
             />
           </div>
           <div>
-            <label className="block text-black font-bold mb-1">ชื่อ-นามสกุล</label>
+            <label className="block text-black font-bold mb-0">ชื่อ-นามสกุล</label>
             <Input
               value={
                 [
@@ -114,7 +114,7 @@ export default function TriageForm({
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-1 mb-1">
+        <div className="grid grid-cols-2 gap-1 mb-0">
           <Input
             placeholder="BP Systolic (90-140 mmHg)"
             value={vitals.sys}
@@ -177,7 +177,7 @@ export default function TriageForm({
           )}
         </div>
                 {/* เกณฑ์ค่าต่างๆ */}
-        <div className="mt-4 p-3 bg-blue-50 rounded text-sm text-black">
+        <div className="mt-1 p-3 bg-blue-50 rounded text-sm text-black">
           <div className="font-bold mb-2">เกณฑ์ค่าปกติ Vital Signs</div>
           <ul className="list-disc pl-5">
             <li>BP (ความดันโลหิต): 90-140 / 60-90 mmHg</li>
@@ -195,7 +195,7 @@ export default function TriageForm({
         <Input
           placeholder="อาการเบื้องต้น"
           value={noteS}
-          onChange={e => setNoteS(e.target.value)}
+          onChange={e => setNoteS(e.target.value)}  
           className="mb-2 text-black"
         />
         <div className="mb-2 flex gap-4">

@@ -740,7 +740,7 @@ const handleSendCase = async () => {
   return (
   <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col">
     {/* ปุ่มเมนูขั้นตอนด้านบน */}
-    <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto flex flex-row p-2 gap-2 text-black justify-center">
+    <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto flex flex-row p-1 gap-1 text-black justify-center">
       <Button
         variant={step === 1 ? "default" : "outline"}
         className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 1 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
@@ -767,21 +767,21 @@ const handleSendCase = async () => {
         className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
         onClick={() => setStep(4)}
       >
-        กรอกอาการเบื้องต้น/วัด Vital Signs
+        กรอกอาการเบื้องต้น/วัดVital Signs
       </Button>
       <Button
         variant={step === 5 ? "default" : "outline"}
         className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 5 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
         onClick={() => setStep(5)}
       >
-        ส่งเคสไปยังหมอ
+        ประวัติทั้งหมด
       </Button>
     </div>
     {/* Content ฝั่งขวา */}
     <div className="flex-1 flex items-start p-0 overflow-auto">
       <Card className="w-full max-w-none shadow-2xl rounded-none bg-white">
         <CardHeader>
-          <CardTitle className="text-black text-xl md:text-2xl font-bold">
+          <CardTitle className="text-black text-xl md:text-2xl font-bold mb-0">
             {step === 1 && "ลงทะเบียนผู้ป่วยใหม่"}
             {step === 2 && "ค้นหา/เลือกผู้ป่วยเก่า"}
             {step === 3 && "รายการนัดหมาย"}
@@ -824,29 +824,29 @@ const handleSendCase = async () => {
                 </Button>
               </div>
               {/* รายการผู้ป่วยทั้งหมด */}
-              <Card className="max-h-64 overflow-auto mb-4">
-  <CardHeader>รายชื่อผู้ป่วย</CardHeader>
-  <CardContent>
-    {filteredRegisteredPatients.length === 0 && (
-      <div className="p-4 text-gray-500">ไม่พบผู้ป่วย</div>
-    )}
-    {filteredRegisteredPatients.map(p => (
-      <div
-        key={p.hn}
-        className={`p-2 cursor-pointer hover:bg-blue-50 ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
-        onClick={() => handleSelectRegisteredPatient(p)}
-      >
-        <div className="font-bold text-black">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
-        <div className="text-xs text-gray-600">
-          HN: {p.hn} | เลขบัตร: {p.idCard} | เบอร์โทร: {p.phone} | วันเกิด: {p.dob} | เพศ: {p.gender} | สิทธิ: {p.rights}
-        </div>
-      </div>
-    ))}
-  </CardContent>
-</Card>
+              <Card className="max-h-64 overflow-auto mb-2">
+                <CardHeader>รายชื่อผู้ป่วย</CardHeader>
+                <CardContent>
+                  {filteredRegisteredPatients.length === 0 && (
+                    <div className="p-4 text-gray-500">ไม่พบผู้ป่วย</div>
+                  )}
+                  {filteredRegisteredPatients.map(p => (
+                    <div
+                      key={p.hn}
+                      className={`p-2 cursor-pointer hover:bg-blue-50 ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
+                      onClick={() => handleSelectRegisteredPatient(p)}
+                    >
+                      <div className="font-bold text-black">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
+                      <div className="text-xs text-gray-600">
+                        HN: {p.hn} | เลขบัตร: {p.idCard} | เบอร์โทร: {p.phone} | วันเกิด: {p.dob} | เพศ: {p.gender} | สิทธิ: {p.rights}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
               {/* แสดงข้อมูลผู้ป่วยที่เลือก */}
               {selectedRegisteredPatient && (
-                <div className="bg-gray-100 text-black rounded-lg shadow p-4 mb-4">
+                <div className="bg-gray-100 text-black rounded-lg shadow p-4 mb-2">
                   <div className="font-bold text-lg mb-2 text-black">
                     {selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ""} ${selectedRegisteredPatient.lastName || ""}`.trim()
 }
