@@ -9,10 +9,8 @@ import QueueBoard from "./nurse/QueueBoard";
 import TriageForm from "./nurse/TriageForm";
 import SearchPatientSection from "./nurse/SearchPatientSection";
 import CaseHistorySection from "./nurse/CaseHistorySection";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, Textarea, Badge } from "@/components/doctor/ui-lite";
 import { AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 
 interface DoctorDiagnosis {
@@ -803,36 +801,55 @@ const handleSendCase = async () => {
           {step === 2 && (
             <div>
               {/* ช่องค้นหา */}
-              <input
-                type="text"
-                className="border text-black px-2 py-1 rounded mb-2 w-full"
-                placeholder="ค้นหาด้วย HN, ชื่อ, นามสกุล, เลขบัตรประชาชน"
-                value={searchPatientText}
-                onChange={e => setSearchPatientText(e.target.value)}
-              />
-              {/* รายการผู้ป่วยทั้งหมด */}
-              <div className="max-h-64 overflow-auto border rounded mb-4">
-                {filteredRegisteredPatients.length === 0 && (
-                  <div className="p-4 text-gray-500">ไม่พบผู้ป่วย</div>
-                )}
-                {filteredRegisteredPatients.map(p => (
-                  <div
-                    key={p.hn}
-                    className={`p-2 cursor-pointer hover:bg-blue-50 ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
-                    onClick={() => handleSelectRegisteredPatient(p)}
-                  >
-                    <div className="font-bold text-black">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
-                    <div className="text-xs text-gray-600">
-                      HN: {p.hn} | เลขบัตร: {p.idCard} | เบอร์โทร: {p.phone} | วันเกิด: {p.dob} | เพศ: {p.gender} | สิทธิ: {p.rights}
-                    </div>
-                  </div>
-                ))}
+              <div className="flex gap-2 mb-2">
+                <Input
+                  placeholder="ค้นหาด้วย HN, ชื่อ, นามสกุล, เลขบัตรประชาชน"
+                  value={searchPatientText}
+                  onChange={e => setSearchPatientText(e.target.value)}
+                />
+                <Button
+                  onClick={() => {
+                    // ฟังก์ชันค้นหาผู้ป่วยที่ลงทะเบียนแล้ว
+                    const filtered = registeredPatients.filter(p =>
+                      (p.hn && p.hn.includes(searchPatientText)) ||
+                      (p.idCard && p.idCard.includes(searchPatientText)) ||
+                      (p.firstName && p.firstName.includes(searchPatientText)) ||
+                      (p.lastName && p.lastName.includes(searchPatientText)) ||
+                      (p.name && p.name.includes(searchPatientText))
+                    );
+                    setRegisteredPatients(filtered);
+                  }}
+                >
+                  ค้นหา
+                </Button>
               </div>
+              {/* รายการผู้ป่วยทั้งหมด */}
+              <Card className="max-h-64 overflow-auto mb-4">
+  <CardHeader>รายชื่อผู้ป่วย</CardHeader>
+  <CardContent>
+    {filteredRegisteredPatients.length === 0 && (
+      <div className="p-4 text-gray-500">ไม่พบผู้ป่วย</div>
+    )}
+    {filteredRegisteredPatients.map(p => (
+      <div
+        key={p.hn}
+        className={`p-2 cursor-pointer hover:bg-blue-50 ${selectedRegisteredPatient?.hn === p.hn ? "bg-blue-100" : ""}`}
+        onClick={() => handleSelectRegisteredPatient(p)}
+      >
+        <div className="font-bold text-black">{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
+        <div className="text-xs text-gray-600">
+          HN: {p.hn} | เลขบัตร: {p.idCard} | เบอร์โทร: {p.phone} | วันเกิด: {p.dob} | เพศ: {p.gender} | สิทธิ: {p.rights}
+        </div>
+      </div>
+    ))}
+  </CardContent>
+</Card>
               {/* แสดงข้อมูลผู้ป่วยที่เลือก */}
               {selectedRegisteredPatient && (
                 <div className="bg-gray-100 text-black rounded-lg shadow p-4 mb-4">
                   <div className="font-bold text-lg mb-2 text-black">
-                    {selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ""} ${selectedRegisteredPatient.lastName || ""}`.trim()}
+                    {selectedRegisteredPatient.name || `${selectedRegisteredPatient.firstName || ""} ${selectedRegisteredPatient.lastName || ""}`.trim()
+}
                   </div>
                   <div className="text-black">HN: {selectedRegisteredPatient.hn}</div>
                   <div className="text-black">เลขบัตรประชาชน: {selectedRegisteredPatient.idCard}</div>
@@ -879,22 +896,22 @@ const handleSendCase = async () => {
             </div>
           )}
           {step === 3 && (
-            <AppointmentList
-              appointments={filteredAppointments.map((a, idx) => ({
-      ...a,
-      queueNo: idx + 1,
-    }))}
-                searchText={searchText}
-                setSearchText={setSearchText}
-                handleCheckInOnline={appt => {
-                  setSelectedAppointment(appt);
-                  setStep(5);
-                }}
-                handleRemoveQueue={handleRemoveQueue}
-                handleSkipQueue={handleSkipQueue}
-              />
-            )}
-            {step === 4 && (
+            <Card>
+  <CardHeader>รายการนัดหมาย</CardHeader>
+  <CardContent>
+    {appointments.map(a => (
+      <div key={a.id} className="border rounded-xl p-3 flex items-center justify-between mb-2">
+        <div>
+          <div className="font-bold">{a.patient_name || a.name}</div>
+          <div className="text-xs text-slate-500">{a.scheduled_at}</div>
+        </div>
+        <Button onClick={() => handleCheckInOnline(a)}>Check-in</Button>
+      </div>
+    ))}
+  </CardContent>
+</Card>
+          )}
+          {step === 4 && (
               <TriageForm
                 patient={patientState}
                 setPatient={setPatientState}

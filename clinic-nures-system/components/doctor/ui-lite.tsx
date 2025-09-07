@@ -1,13 +1,20 @@
 "use client";
 import * as React from "react";
 
-export function Card({ className="", children }: React.PropsWithChildren<{className?: string}>) {
+export function Card(props) {
+  const { className="", children } = props;
   return <div className={`p-1 rounded-2xl border bg-white shadow-sm ${className}`}>{children}</div>;
 }
-export function CardHeader({ children, className="" }: React.PropsWithChildren<{className?: string}>) {
+export function CardHeader(props) {
+  const { children, className="" } = props;
   return <div className={`p-1 border-b bg-slate-50 rounded-t-2xl ${className}`}>{children}</div>;
 }
-export function CardContent({ children, className="" }: React.PropsWithChildren<{className?: string}>) {
+export function CardTitle(props) {
+  const { children, className="" } = props;
+  return <div className={`font-semibold text-lg ${className}`}>{children}</div>;
+}
+export function CardContent(props) {
+  const { children, className="" } = props;
   return <div className={`p-2 ${className}`}>{children}</div>;
 }
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
