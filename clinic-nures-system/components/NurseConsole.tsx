@@ -737,69 +737,73 @@ const handleSendCase = async () => {
   const [drinking, setDrinking] = useState("");
   const [smoking, setSmoking] = useState("");
 
+  // เพิ่ม state สำหรับค้นหาประวัติผู้ป่วย
+const [searchHistoryText, setSearchHistoryText] = useState('');
+const [selectedHistoryPatient, setSelectedHistoryPatient] = useState<Patient | null>(null);
+
   return (
   <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col">
     {/* ปุ่มเมนูขั้นตอนด้านบน */}
-    <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto flex flex-row p-1 gap-1 text-black justify-center">
-      <Button
-        variant={step === 1 ? "default" : "outline"}
-        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 1 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-        onClick={() => setStep(1)}
-      >
-        ลงทะเบียนผู้ป่วยใหม่
-      </Button>
-      <Button
-        variant={step === 2 ? "default" : "outline"}
-        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 2 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-        onClick={() => setStep(2)}
-      >
-        ค้นหา/เลือกผู้ป่วยเก่า
-      </Button>
-      <Button
-        variant={step === 3 ? "default" : "outline"}
-        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 3 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-        onClick={() => setStep(3)}
-      >
-        ดูรายการนัดหมาย
-      </Button>
-      <Button
-        variant={step === 4 ? "default" : "outline"}
-        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-        onClick={() => setStep(4)}
-      >
-        กรอกอาการเบื้องต้น/วัดVital Signs
-      </Button>
-      <Button
-        variant={step === 5 ? "default" : "outline"}
-        className={`text-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 5 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
-        onClick={() => setStep(5)}
-      >
-        ประวัติทั้งหมด
-      </Button>
-    </div>
-    {/* Content ฝั่งขวา */}
-    <div className="flex-1 flex items-start p-0 overflow-auto">
-      <Card className="w-full max-w-none shadow-2xl rounded-none bg-white">
-        <CardHeader>
-          <CardTitle className="text-black text-xl md:text-2xl font-bold mb-0">
-            {step === 1 && "ลงทะเบียนผู้ป่วยใหม่"}
-            {step === 2 && "ค้นหา/เลือกผู้ป่วยเก่า"}
-            {step === 3 && "รายการนัดหมาย"}
-            {step === 4 && "กรอกอาการเบื้องต้น/วัด Vital Signs"}
-            {step === 5 && "ส่งเคสไปยังหมอ"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-black text-base">
-          {step === 1 && (
-            <PatientRegisterForm
-              patient={patient}
-              setPatient={setPatient}
-              isWalkIn={true}
-              handleRegisterPatient={() => setStep(3)}
-            />
-          )}
-          {step === 2 && (
-            <div>
+    <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto flex flex-row p-1 gap-1 text-black justify-center border-b border-blue-300">
+  <Button
+    variant={step === 1 ? "default" : "outline"}
+    className={`text-black border border-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 1 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+    onClick={() => setStep(1)}
+  >
+    ลงทะเบียนผู้ป่วยใหม่
+  </Button>
+  <Button
+    variant={step === 2 ? "default" : "outline"}
+    className={`text-black border border-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 2 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+    onClick={() => setStep(2)}
+  >
+    ค้นหา/เลือกผู้ป่วยเก่า
+  </Button>
+  <Button
+    variant={step === 3 ? "default" : "outline"}
+    className={`text-black border border-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 3 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+    onClick={() => setStep(3)}
+  >
+    ดูรายการนัดหมาย
+  </Button>
+  <Button
+    variant={step === 4 ? "default" : "outline"}
+    className={`text-black border border-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 4 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+    onClick={() => setStep(4)}
+  >
+    กรอกอาการเบื้องต้น/วัดVital Signs
+  </Button>
+  <Button
+    variant={step === 6 ? "default" : "outline"}
+    className={`text-black border border-black bg-blue-500 font-semibold px-4 py-2 rounded-lg ${step === 6 ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+    onClick={() => setStep(6)}
+  >
+    ประวัติทั้งหมด
+  </Button>
+</div>
+{/* Content ฝั่งขวา */}
+<div className="flex-1 flex items-start p-0 overflow-auto">
+  <Card className="w-full max-w-none shadow-2xl rounded-none bg-white border border-blue-300">
+    <CardHeader>
+      <CardTitle className="text-black text-xl md:text-2xl font-bold mb-0">
+        {step === 1 && "ลงทะเบียนผู้ป่วยใหม่"}
+        {step === 2 && "ค้นหา/เลือกผู้ป่วยเก่า"}
+        {step === 3 && "รายการนัดหมาย"}
+        {step === 4 && "กรอกอาการเบื้องต้น/วัด Vital Signs"}
+        {step === 5 && "ส่งเคสไปยังหมอ"}
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="text-black text-base">
+      {step === 1 && (
+        <PatientRegisterForm
+          patient={patient}
+          setPatient={setPatient}
+          isWalkIn={true}
+          handleRegisterPatient={() => setStep(3)}
+        />
+      )}
+      {step === 2 && (
+        <div>
               {/* ช่องค้นหา */}
               <div className="flex gap-2 mb-2">
                 <Input
@@ -948,11 +952,54 @@ const handleSendCase = async () => {
             )}
             {/* เพิ่มระบบดูเวชระเบียน */}
             {step === 6 && (
-              <CaseHistorySection
-                hn={patientState.hn}
-                patient={patientState}
-              />
-            )}
+  <div className="flex gap-4">
+    {/* ฝั่งซ้าย: ค้นหาและเลือกผู้ป่วย */}
+    <div className="w-80 min-w-[220px] max-h-[70vh] overflow-auto bg-gray-50 rounded-lg shadow p-3">
+      <Input
+        placeholder="ค้นหาด้วย HN, ชื่อ, นามสกุล, เลขบัตร"
+        value={searchHistoryText}
+        onChange={e => setSearchHistoryText(e.target.value)}
+        className="mb-2"
+      />
+      <div className="space-y-1">
+        {registeredPatients
+          .filter(p => {
+            const q = searchHistoryText.trim().toLowerCase();
+            if (!q) return true;
+            return (
+              (p.hn && p.hn.toLowerCase().includes(q)) ||
+              (p.idCard && p.idCard.toLowerCase().includes(q)) ||
+              (p.firstName && p.firstName.toLowerCase().includes(q)) ||
+              (p.lastName && p.lastName.toLowerCase().includes(q)) ||
+              (p.name && p.name.toLowerCase().includes(q))
+            );
+          })
+          .map(p => (
+            <div
+              key={p.hn}
+              className={`p-2 rounded cursor-pointer hover:bg-blue-100 ${selectedHistoryPatient?.hn === p.hn ? "bg-blue-200 font-bold" : ""}`}
+              onClick={() => setSelectedHistoryPatient(p)}
+            >
+              <div>{p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim()}</div>
+              <div className="text-xs text-gray-500">HN: {p.hn}</div>
+            </div>
+          ))}
+      </div>
+    </div>
+    {/* ฝั่งขวา: แสดงประวัติการรักษา */}
+    <div className="flex-1 min-w-0">
+      {selectedHistoryPatient ? (
+        <CaseHistorySection
+          hn={selectedHistoryPatient.hn}
+          patient={selectedHistoryPatient}
+          casesFromDoctor={casesFromDoctor ?? []} // <--- เพิ่มบรรทัดนี้
+        />
+      ) : (
+        <div className="text-gray-400 text-center mt-12">กรุณาเลือกผู้ป่วยเพื่อดูประวัติการรักษา</div>
+      )}
+    </div>
+  </div>
+)}
           </CardContent>
         </Card>
       </div>

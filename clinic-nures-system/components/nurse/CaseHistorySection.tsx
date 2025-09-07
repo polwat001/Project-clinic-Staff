@@ -20,19 +20,17 @@ interface DoctorDiagnosis {
   };
 }
 
-interface Props {
-  casesFromDoctor: DoctorDiagnosis[];
-  casesSent: DoctorDiagnosis[];
-  selectedCase: DoctorDiagnosis | null;
-  setSelectedCase: (c: DoctorDiagnosis | null) => void;
+interface CaseHistorySectionProps {
+  hn: string;
+  patient: any;
+  casesFromDoctor?: any[]; // อาจเป็น DoctorDiagnosis[] ก็ได้
 }
 
 export default function CaseHistorySection({
-  casesFromDoctor,
-  casesSent,
-  selectedCase,
-  setSelectedCase,
-}: Props) {
+  hn,
+  patient,
+  casesFromDoctor = [], // <--- เพิ่ม default value ตรงนี้
+}: CaseHistorySectionProps) {
   return (
     <Card>
       <CardHeader>

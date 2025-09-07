@@ -323,7 +323,7 @@ export default function Tabs(p: Props) {
                 placeholder="เช่น ไอ เจ็บคอ 3 วัน มีไข้"
                 className="text-black text-sm"
               />
-              <div className="text-[11px] text-slate-400 mt-1 text-right">
+              <div className="text-[11px] text-slate-500 mt-1 text-right">
                 {(p.cc ?? "").length} ตัวอักษร
               </div>
             </CardContent>
