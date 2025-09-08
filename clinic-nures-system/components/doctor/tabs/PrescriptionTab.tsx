@@ -269,9 +269,9 @@ export default function PrescriptionTab({
               </div>
 
               {/* 🔢 ฟอร์มจำนวนยา */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1">
                 <div>
-                  <label className="block text-xs text-slate-600 mb-1">จำนวนต่อครั้ง</label>
+                  <label className="block text-xs text-slate-600 mb-1 p-1">จำนวนต่อครั้ง</label>
                   <Input
                     type="number" min={1}
                     value={i.qty_per_dose ?? 1}

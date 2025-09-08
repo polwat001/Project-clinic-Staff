@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabaseClient";
 
 interface Vitals {
   sys: string;
@@ -13,6 +14,7 @@ interface Vitals {
   spo2: string;
   wt: string;
   ht: string;
+  noteS: string; // เพิ่มบรรทัดนี้
 }
 
 interface Patient {
@@ -30,6 +32,7 @@ interface Patient {
   pmh: string;
   meds: string;
   urgency: string;
+  noteS: string;
   // ...other fields...
 }
 
@@ -84,6 +87,8 @@ export default function TriageForm({
   smoking,
   setSmoking,
 }: Props) {
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   return (
     <Card>
       <CardContent className="text-black">
@@ -102,10 +107,11 @@ export default function TriageForm({
             <label className="block text-black font-bold mb-0">ชื่อ-นามสกุล</label>
             <Input
               value={
+                patient.name?.trim() ||
                 [
                   patient.prefix || "",
-                  patient.first_name || "",
-                  patient.last_name || ""
+                  patient.first_name || patient.firstName || "",
+                  patient.last_name || patient.lastName || ""
                 ].filter(Boolean).join(" ")
               }
               readOnly
@@ -194,8 +200,8 @@ export default function TriageForm({
         </div>
         <Input
           placeholder="อาการเบื้องต้น"
-          value={noteS}
-          onChange={e => setNoteS(e.target.value)}  
+          value={vitals.noteS}
+          onChange={e => setVitals({ ...vitals, noteS: e.target.value })}
           className="mb-2 text-black"
         />
         <div className="mb-2 flex gap-4">
@@ -258,49 +264,52 @@ export default function TriageForm({
             </div>
           </div>
         </div>
+        {saveSuccess && (
+          <div className="mb-2 p-2 rounded bg-green-100 text-green-700 border border-green-400 text-center font-bold">
+            ✔️ บันทึก Vital Signs สำเร็จ
+          </div>
+        )}
         <div className="flex gap-2 mt-2">
           <Button
-  className="text-black"
-  onClick={async () => {
-    // สร้าง payload สำหรับบันทึก
-    const payload = {
-      hn: patient.hn,
-      name:
-        patient.name && patient.name.trim()
-          ? patient.name.trim()
-          : [
-              patient.prefix || "",
-              patient.first_name || patient.first_name || "",
-              patient.last_name || patient.last_name || ""
-            ].filter(Boolean).join(" ").trim(),
-      sys: Number(vitals.sys) || null,
-      dia: Number(vitals.dia) || null,
-      hr: Number(vitals.hr) || null,
-      rr: Number(vitals.rr) || null,
-      temp_c: Number(vitals.temp) || null,
-      spo2: Number(vitals.spo2) || null,
-      weight_kg: Number(vitals.wt) || null,
-      height_cm: Number(vitals.ht) || null,
-      bmi: Number(bmiDerived) || null,
-      drinking,
-      smoking,
-    };
-    console.log("payload:", payload);
-    await fetch("/api/vitals", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    handleSaveVitals();
-  }}
->
-  บันทึก Vital Signs
-</Button>
+            className="text-black"
+            onClick={async () => {
+              const payload = {
+                hn: patient.hn ?? "",
+                full_name:
+                  (patient.name && patient.name.trim())
+                    ? patient.name.trim()
+                    : [
+                        patient.prefix || "",
+                        patient.first_name || (patient as any).firstName || "",
+                        patient.last_name || (patient as any).lastName || ""
+                      ].filter(Boolean).join(" ").trim() || null,
+                sys: Number(vitals.sys) || null,
+                dia: Number(vitals.dia) || null,
+                hr: Number(vitals.hr) || null,
+                rr: Number(vitals.rr) || null,
+                temp_c: Number(vitals.temp) || null,
+                spo2: Number(vitals.spo2) || null,
+                weight_kg: Number(vitals.wt) || null,
+                height_cm: Number(vitals.ht) || null,
+                bmi: Number(bmiDerived) || null,
+                drinking,
+                smoking,
+                chief_complaint: vitals.noteS || "",
+              };
+              const { error } = await supabase.from('vitals').insert([payload]);
+              if (!error) {
+                setSaveSuccess(true);
+                setTimeout(() => setSaveSuccess(false), 2000); // ซ่อนแจ้งเตือนหลัง 2 วินาที
+              } else {
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+              }
+              // handleSaveVitals(); // ไม่ต้องเรียกซ้ำถ้าในนี้มี insert vitals อีก
+            }}
+          >
+            บันทึก Vital Signs
+          </Button>
           <Button className="text-black" variant="outline" onClick={handleQuickWalkIn} disabled={!selected || !clientTime}>
             เพิ่ม Walk-in & เข้าคิว
-          </Button>
-          <Button className="text-black" variant="secondary" onClick={advanceToDoctor} disabled={!selected || !clientTime}>
-            ส่งต่อแพทย์
           </Button>
         </div>
       </CardContent>
