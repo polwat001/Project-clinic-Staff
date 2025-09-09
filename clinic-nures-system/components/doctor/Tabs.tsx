@@ -18,6 +18,26 @@ type RxItemWithMealTiming = RxItem & {
 import { fmtDate } from "@/lib/utils";
 import { searchMedicationCatalog } from "@/lib/db";
 import { AppointmentBooker } from "./AppointmentBooker";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+type VitalsRO = {
+  taken_at: string;
+  sys: number | null;
+  dia: number | null;
+  hr: number | null;
+  rr: number | null;
+  temp_c: number | null;
+  spo2: number | null;
+  weight_kg: number | null;
+  height_cm: number | null;
+  bmi: number | null;
+  noteS: string | null;
+  chief_complaint: string | null;
+  drinking: string | null;
+  smoking: string | null;
+  full_name: string | null;
+};
 
 // Minimal VisitBlock component for displaying a visit
 const VisitBlock = ({ v }: { v: Visit }) => (
@@ -239,6 +259,87 @@ export default function Tabs(p: Props) {
     </svg>
   );
 
+  // vitals state
+  const [vitals, setVitals] = useState<VitalsRO | undefined>(undefined);
+  const [latestVisitVitals, setLatestVisitVitals] = useState<VitalsRO | undefined>(undefined);
+  const [latestVitals, setLatestVitals] = useState<VitalsRO | null>(null);
+
+  useEffect(() => {
+    async function fetchLatestVitals() {
+      if (!p.patient?.hn) {
+        setLatestVitals(null);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("vitals")
+        .select(
+          "created_at, sys, dia, hr, rr, temp_c, spo2, weight_kg, height_cm, bmi, noteS, chief_complaint, drinking, smoking, full_name"
+        )
+        .eq("hn", p.patient.hn)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (!error && data) {
+        setLatestVitals({
+          taken_at: data.created_at,
+          sys: data.sys,
+          dia: data.dia,
+          hr: data.hr,
+          rr: data.rr,
+          temp_c: data.temp_c,
+          spo2: data.spo2,
+          weight_kg: data.weight_kg,
+          height_cm: data.height_cm,
+          bmi: data.bmi,
+          noteS: data.noteS,
+          chief_complaint: data.chief_complaint,
+          drinking: data.drinking,
+          smoking: data.smoking,
+          full_name: data.full_name,
+        });
+      } else {
+        setLatestVitals(null);
+      }
+    }
+    fetchLatestVitals();
+  }, [p.patient?.hn]);
+
+  useEffect(() => {
+    async function fetchLatestVisitVitals() {
+      if (!p.patient?.id) {
+        setLatestVisitVitals(undefined);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("visits")
+        .select(
+          "visit_at, bp_sys, bp_dia, pulse, rr, temp_c, spo2, height_cm, weight_kg, bmi, chief_complaint"
+        )
+        .eq("patient_id", p.patient.id)
+        .order("visit_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (!error && data) {
+        setLatestVisitVitals({
+          taken_at: data.visit_at,
+          bp_sys: data.bp_sys,
+          bp_dia: data.bp_dia,
+          pulse: data.pulse,
+          rr: data.rr,
+          temp_c: data.temp_c,
+          spo2: data.spo2,
+          height_cm: data.height_cm,
+          weight_kg: data.weight_kg,
+          bmi: data.bmi,
+          note: data.chief_complaint,
+        });
+      } else {
+        setLatestVisitVitals(undefined);
+      }
+    }
+    fetchLatestVisitVitals();
+  }, [p.patient?.id]);
+
   return (
     <div className="space-y-2 text-[15px] leading-[1.6] text-black gap-0 p-0">
       {/* Tabs header */}
@@ -283,35 +384,39 @@ export default function Tabs(p: Props) {
       {/* ตรวจ/วินิจฉัย/แผน */}
       {tab === "exam" && (
         <div className="grid md:grid-cols-2 gap-2 text-black">
-          {/* vitals */}
-          <Card className="md:col-span-2">
-            <CardHeader className="text-black">สัญญาณชีพ (Vitals)</CardHeader>
-            <CardContent className="text-black">
-              {!p.vitals ? (
-                <div className="text-slate-500">ยังไม่มีการบันทึกสัญญาณชีพ</div>
-              ) : (
-                <div className="grid md:grid-cols-3 gap-2">
-                  <div>
-                    BP: {p.vitals.bp_sys ?? "-"} / {p.vitals.bp_dia ?? "-"} mmHg
-                  </div>
-                  <div>PR: {p.vitals.pulse ?? "-"} bpm</div>
-                  <div>Temp: {p.vitals.temp_c ?? "-"} °C</div>
-                  <div>RR: {p.vitals.rr ?? "-"} /min</div>
-                  <div>SpO₂: {p.vitals.spo2 ?? "-"} %</div>
-                  <div>
-                    ส่วนสูง/น้ำหนัก: {p.vitals.height_cm ?? "-"} ซม. ·{" "}
-                    {p.vitals.weight_kg ?? "-"} กก.
-                    {p.vitals.bmi != null ? <> · BMI {p.vitals.bmi}</> : null}
-                  </div>
-                  <div className="col-span-full text-xs text-slate-500">
-                    บันทึกเมื่อ {fmtDate(p.vitals.taken_at)}{" "}
-                    {p.vitals.note ? `· ${p.vitals.note}` : ""}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+          {/* vitals */}<Card className="md:col-span-2">
+  <CardHeader className="text-black">สัญญาณชีพ (จาก Vitals ล่าสุด)</CardHeader>
+  <CardContent className="text-black">
+    {!latestVitals ? (
+      <div className="text-slate-500">ยังไม่มีการบันทึก Vitals</div>
+    ) : (
+      <div className="grid md:grid-cols-3 gap-2">
+        <div>
+          BP: {latestVitals.sys ?? "-"} / {latestVitals.dia ?? "-"} mmHg
+        </div>
+        <div>PR: {latestVitals.hr ?? "-"} bpm</div>
+        <div>Temp: {latestVitals.temp_c ?? "-"} °C</div>
+        <div>RR: {latestVitals.rr ?? "-"} /min</div>
+        <div>SpO₂: {latestVitals.spo2 ?? "-"} %</div>
+        <div>
+          ส่วนสูง/น้ำหนัก: {latestVitals.height_cm ?? "-"} ซม. ·{" "}
+          {latestVitals.weight_kg ?? "-"} กก.
+          {latestVitals.bmi != null ? <> · BMI {latestVitals.bmi}</> : null}
+        </div>
+        <div className="col-span-full text-xs text-slate-500">
+          บันทึกเมื่อ {latestVitals.taken_at}
+          {latestVitals.chief_complaint ? ` · ${latestVitals.chief_complaint}` : ""}
+        </div>
+        <div className="col-span-full text-xs text-slate-500">
+          หมายเหตุ: {latestVitals.noteS || "-"}
+        </div>
+        <div className="col-span-full text-xs text-slate-500">
+          ดื่มสุรา: {latestVitals.drinking || "-"} | สูบบุหรี่: {latestVitals.smoking || "-"}
+        </div>
+      </div>
+    )}
+  </CardContent>
+</Card>
           {/* ปรับขนาด Card ให้เล็กลง */}
           <Card>
             <CardHeader>อาการนำ (CC)</CardHeader>

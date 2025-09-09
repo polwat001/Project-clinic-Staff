@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -89,6 +89,23 @@ export default function TriageForm({
 }: Props) {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Reset vitals เมื่อ patient เปลี่ยน
+  useEffect(() => {
+    setVitals({
+      sys: "",
+      dia: "",
+      hr: "",
+      rr: "",
+      temp: "",
+      spo2: "",
+      wt: "",
+      ht: "",
+      noteS: "",
+    });
+    // ถ้ามี state อื่นที่ต้อง reset เช่น flags, noteS, noteO, noteA, noteP ให้ reset ที่นี่ด้วย
+  }, [patient.hn]); // หรือ [patient] ถ้า patient object เปลี่ยนทุกครั้ง
+
+  console.log("patient", patient);
   return (
     <Card>
       <CardContent className="text-black">
