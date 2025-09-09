@@ -272,9 +272,7 @@ export default function Tabs(p: Props) {
       }
       const { data, error } = await supabase
         .from("vitals")
-        .select(
-          "created_at, sys, dia, hr, rr, temp_c, spo2, weight_kg, height_cm, bmi, noteS, chief_complaint, drinking, smoking, full_name"
-        )
+        .select("created_at, sys, dia, hr, rr, temp_c, spo2, weight_kg, height_cm, bmi, noteS, chief_complaint, drinking, smoking, full_name")
         .eq("hn", p.patient.hn)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -282,20 +280,16 @@ export default function Tabs(p: Props) {
       if (!error && data) {
         setLatestVitals({
           taken_at: data.created_at,
-          sys: data.sys,
-          dia: data.dia,
-          hr: data.hr,
+          bp_sys: data.sys,
+          bp_dia: data.dia,
+          pulse: data.hr,
           rr: data.rr,
           temp_c: data.temp_c,
           spo2: data.spo2,
-          weight_kg: data.weight_kg,
           height_cm: data.height_cm,
+          weight_kg: data.weight_kg,
           bmi: data.bmi,
-          noteS: data.noteS,
-          chief_complaint: data.chief_complaint,
-          drinking: data.drinking,
-          smoking: data.smoking,
-          full_name: data.full_name,
+          note: data.noteS,
         });
       } else {
         setLatestVitals(null);
@@ -339,6 +333,9 @@ export default function Tabs(p: Props) {
     }
     fetchLatestVisitVitals();
   }, [p.patient?.id]);
+
+  // ใช้ p.vitals ก่อน ถ้าไม่มี fallback เป็น latestVitals
+  const vitalsToShow = p.vitals ?? latestVitals;
 
   return (
     <div className="space-y-2 text-[15px] leading-[1.6] text-black gap-0 p-0">
@@ -384,39 +381,33 @@ export default function Tabs(p: Props) {
       {/* ตรวจ/วินิจฉัย/แผน */}
       {tab === "exam" && (
         <div className="grid md:grid-cols-2 gap-2 text-black">
-          {/* vitals */}<Card className="md:col-span-2">
-  <CardHeader className="text-black">สัญญาณชีพ (จาก Vitals ล่าสุด)</CardHeader>
-  <CardContent className="text-black">
-    {!latestVitals ? (
-      <div className="text-slate-500">ยังไม่มีการบันทึก Vitals</div>
-    ) : (
-      <div className="grid md:grid-cols-3 gap-2">
-        <div>
-          BP: {latestVitals.sys ?? "-"} / {latestVitals.dia ?? "-"} mmHg
-        </div>
-        <div>PR: {latestVitals.hr ?? "-"} bpm</div>
-        <div>Temp: {latestVitals.temp_c ?? "-"} °C</div>
-        <div>RR: {latestVitals.rr ?? "-"} /min</div>
-        <div>SpO₂: {latestVitals.spo2 ?? "-"} %</div>
-        <div>
-          ส่วนสูง/น้ำหนัก: {latestVitals.height_cm ?? "-"} ซม. ·{" "}
-          {latestVitals.weight_kg ?? "-"} กก.
-          {latestVitals.bmi != null ? <> · BMI {latestVitals.bmi}</> : null}
-        </div>
-        <div className="col-span-full text-xs text-slate-500">
-          บันทึกเมื่อ {latestVitals.taken_at}
-          {latestVitals.chief_complaint ? ` · ${latestVitals.chief_complaint}` : ""}
-        </div>
-        <div className="col-span-full text-xs text-slate-500">
-          หมายเหตุ: {latestVitals.noteS || "-"}
-        </div>
-        <div className="col-span-full text-xs text-slate-500">
-          ดื่มสุรา: {latestVitals.drinking || "-"} | สูบบุหรี่: {latestVitals.smoking || "-"}
-        </div>
-      </div>
-    )}
-  </CardContent>
-</Card>
+          <Card className="md:col-span-2">
+            <CardHeader className="text-black">สัญญาณชีพ (จาก Vitals ล่าสุด)</CardHeader>
+            <CardContent className="text-black">
+              {!vitalsToShow ? (
+                <div className="text-slate-500">ยังไม่มีการบันทึก Vitals</div>
+              ) : (
+                <div className="grid md:grid-cols-3 gap-2">
+                  <div>
+                    BP: {vitalsToShow.bp_sys ?? "-"} / {vitalsToShow.bp_dia ?? "-"} mmHg
+                  </div>
+                  <div>PR: {vitalsToShow.pulse ?? "-"} bpm</div>
+                  <div>Temp: {vitalsToShow.temp_c ?? "-"} °C</div>
+                  <div>RR: {vitalsToShow.rr ?? "-"} /min</div>
+                  <div>SpO₂: {vitalsToShow.spo2 ?? "-"} %</div>
+                  <div>
+                    ส่วนสูง/น้ำหนัก: {vitalsToShow.height_cm ?? "-"} ซม. ·{" "}
+                    {vitalsToShow.weight_kg ?? "-"} กก.
+                    {vitalsToShow.bmi != null ? <> · BMI {vitalsToShow.bmi}</> : null}
+                  </div>
+                  <div className="col-span-full text-xs text-slate-500">
+                    บันทึกเมื่อ {vitalsToShow.taken_at}
+                    {vitalsToShow.note ? ` · ${vitalsToShow.note}` : ""}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
           {/* ปรับขนาด Card ให้เล็กลง */}
           <Card>
             <CardHeader>อาการนำ (CC)</CardHeader>
