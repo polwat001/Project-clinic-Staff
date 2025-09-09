@@ -18,26 +18,6 @@ type RxItemWithMealTiming = RxItem & {
 import { fmtDate } from "@/lib/utils";
 import { searchMedicationCatalog } from "@/lib/db";
 import { AppointmentBooker } from "./AppointmentBooker";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-
-type VitalsRO = {
-  taken_at: string;
-  sys: number | null;
-  dia: number | null;
-  hr: number | null;
-  rr: number | null;
-  temp_c: number | null;
-  spo2: number | null;
-  weight_kg: number | null;
-  height_cm: number | null;
-  bmi: number | null;
-  noteS: string | null;
-  chief_complaint: string | null;
-  drinking: string | null;
-  smoking: string | null;
-  full_name: string | null;
-};
 
 // Minimal VisitBlock component for displaying a visit
 const VisitBlock = ({ v }: { v: Visit }) => (
@@ -259,6 +239,7 @@ export default function Tabs(p: Props) {
     </svg>
   );
 
+<<<<<<< HEAD
   // vitals state
   const [vitals, setVitals] = useState<VitalsRO | undefined>(undefined);
   const [latestVisitVitals, setLatestVisitVitals] = useState<VitalsRO | undefined>(undefined);
@@ -337,6 +318,8 @@ export default function Tabs(p: Props) {
   // ใช้ p.vitals ก่อน ถ้าไม่มี fallback เป็น latestVitals
   const vitalsToShow = p.vitals ?? latestVitals;
 
+=======
+>>>>>>> parent of 92de86e (123123)
   return (
     <div className="space-y-2 text-[15px] leading-[1.6] text-black gap-0 p-0">
       {/* Tabs header */}
@@ -381,6 +364,7 @@ export default function Tabs(p: Props) {
       {/* ตรวจ/วินิจฉัย/แผน */}
       {tab === "exam" && (
         <div className="grid md:grid-cols-2 gap-2 text-black">
+<<<<<<< HEAD
           <Card className="md:col-span-2">
             <CardHeader className="text-black">สัญญาณชีพ (จาก Vitals ล่าสุด)</CardHeader>
             <CardContent className="text-black">
@@ -403,11 +387,40 @@ export default function Tabs(p: Props) {
                   <div className="col-span-full text-xs text-slate-500">
                     บันทึกเมื่อ {vitalsToShow.taken_at}
                     {vitalsToShow.note ? ` · ${vitalsToShow.note}` : ""}
+=======
+          {/* vitals */}
+          <Card className="md:col-span-2">
+            <CardHeader className="text-black">สัญญาณชีพ (Vitals)</CardHeader>
+            <CardContent className="text-black">
+              {!p.vitals ? (
+                <div className="text-slate-500">ยังไม่มีการบันทึกสัญญาณชีพ</div>
+              ) : (
+                <div className="grid md:grid-cols-3 gap-2">
+                  <div>
+                    BP: {p.vitals.bp_sys ?? "-"} / {p.vitals.bp_dia ?? "-"} mmHg
+                  </div>
+                  <div>PR: {p.vitals.pulse ?? "-"} bpm</div>
+                  <div>Temp: {p.vitals.temp_c ?? "-"} °C</div>
+                  <div>RR: {p.vitals.rr ?? "-"} /min</div>
+                  <div>SpO₂: {p.vitals.spo2 ?? "-"} %</div>
+                  <div>
+                    ส่วนสูง/น้ำหนัก: {p.vitals.height_cm ?? "-"} ซม. ·{" "}
+                    {p.vitals.weight_kg ?? "-"} กก.
+                    {p.vitals.bmi != null ? <> · BMI {p.vitals.bmi}</> : null}
+                  </div>
+                  <div className="col-span-full text-xs text-slate-500">
+                    บันทึกเมื่อ {fmtDate(p.vitals.taken_at)}{" "}
+                    {p.vitals.note ? `· ${p.vitals.note}` : ""}
+>>>>>>> parent of 92de86e (123123)
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of 92de86e (123123)
           {/* ปรับขนาด Card ให้เล็กลง */}
           <Card>
             <CardHeader>อาการนำ (CC)</CardHeader>
