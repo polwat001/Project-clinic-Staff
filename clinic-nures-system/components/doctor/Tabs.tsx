@@ -18,26 +18,9 @@ type RxItemWithMealTiming = RxItem & {
 import { fmtDate } from "@/lib/utils";
 import { searchMedicationCatalog } from "@/lib/db";
 import { AppointmentBooker } from "./AppointmentBooker";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-
-type VitalsRO = {
-  taken_at: string;
-  sys: number | null;
-  dia: number | null;
-  hr: number | null;
-  rr: number | null;
-  temp_c: number | null;
-  spo2: number | null;
-  weight_kg: number | null;
-  height_cm: number | null;
-  bmi: number | null;
-  noteS: string | null;
-  chief_complaint: string | null;
-  drinking: string | null;
-  smoking: string | null;
-  full_name: string | null;
-};
+import HistoryTab from "./tabs/HistoryTab";
 
 // Minimal VisitBlock component for displaying a visit
 const VisitBlock = ({ v }: { v: Visit }) => (
@@ -340,6 +323,9 @@ export default function Tabs(p: Props) {
     fetchLatestVisitVitals();
   }, [p.patient?.id]);
 
+  // ใช้ p.vitals ก่อน ถ้าไม่มี fallback เป็น latestVitals
+  const vitalsToShow = p.vitals ?? latestVitals;
+
   return (
     <div className="space-y-2 text-[15px] leading-[1.6] text-black gap-0 p-0">
       {/* Tabs header */}
@@ -610,7 +596,7 @@ export default function Tabs(p: Props) {
                 {catalog.map((m) => (
                   <div
                     key={m.drug_code}
-                    className="p-3 border rounded-xl bg-white flex items-center justify-between"
+                    className="p-1 border rounded-xl bg-white flex items-center justify-between"
                   >
                     <div className="min-w-0">
                       <div className="font-medium truncate" title={m.name}>
@@ -623,7 +609,7 @@ export default function Tabs(p: Props) {
                       </div>
                     </div>
                     <button
-                      className="px-3 py-1 rounded-xl border hover:bg-slate-50 disabled:opacity-50"
+                      className="px-2 py-1 rounded-xl border hover:bg-slate-50 disabled:opacity-50"
                       onClick={() => handleAdd(m)}
                       disabled={alreadyHas(m.drug_code)}
                     >
@@ -645,7 +631,7 @@ export default function Tabs(p: Props) {
               {p.rxItems.map((i) => (
                 <div
                   key={i.drug_code}
-                  className="p-3 border rounded-xl bg-white space-y-2"
+                  className="p-1 border rounded-xl bg-white space-y-2 "
                 >
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
@@ -678,9 +664,9 @@ export default function Tabs(p: Props) {
                   </div>
 
                   {/* 🔢 ช่องกรอกจำนวนยา */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid p-0 grid-cols-2 gap-2 mb-1">
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">
+                      <label className="block text-xs text-slate-600 mb-0">
                         จำนวนต่อครั้ง
                       </label>
                       <Input
@@ -702,7 +688,7 @@ export default function Tabs(p: Props) {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">
+                      <label className="block text-xs text-slate-600 mb-0">
                         ครั้งต่อวัน
                       </label>
                       <Input
@@ -724,7 +710,7 @@ export default function Tabs(p: Props) {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-600 mb-1">
+                      <label className="block text-xs text-slate-600 mb-0">
                         จำนวนวัน
                       </label>
                       <Input
@@ -756,7 +742,7 @@ export default function Tabs(p: Props) {
                   {/* 🍽️ เวลากับอาหาร */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                     <div className="md:col-span-1">
-                      <label className="block text-xs text-slate-600 mb-1">
+                      <label className="block text-xs text-slate-600 mb-0">
                         เวลากับอาหาร
                       </label>
                       <select
@@ -857,7 +843,11 @@ export default function Tabs(p: Props) {
               <div className="pt-2 flex flex-wrap gap-2">
                 <Button
                   disabled={p.rxItems.length === 0}
-                  onClick={() => p.onSendRx(rxAdvice)}
+                  onClick={() => {
+                    // ลบ total_units ออกจากทุก RxItem ก่อนส่ง
+                    const cleanItems = p.rxItems.map(({ total_units, ...rest }) => rest);
+                    p.onSendRx(rxAdvice, cleanItems);
+                  }}
                 >
                   <span className="flex items-center">
                     <PlaneIcon /> ส่งใบสั่งยาให้พนักงาน
@@ -935,17 +925,9 @@ export default function Tabs(p: Props) {
 
 {tab === "history" && (
   <Card>
-    <CardHeader className="text-black">เวชระเบียนทั้งหมด</CardHeader>
-    <CardContent className="space-y-3 text-black">
-      {p.visits.length === 0 && (
-        <div className="text-slate-500 text-black">ยังไม่มีเวชระเบียน</div>
-      )}
-      {p.visits.map((v) => (
-        <VisitBlock
-          key={((v as any).id ?? (v as any).visit_id) as string}
-          v={v}
-        />
-      ))}
+    <CardHeader>เวชระเบียนทั้งหมด</CardHeader>
+    <CardContent className="space-y-3">
+      <HistoryTab patientId={p.patient.id} visits={p.visits} appts={p.appts} />
     </CardContent>
   </Card>
 )}

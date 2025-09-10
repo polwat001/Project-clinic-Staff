@@ -185,13 +185,22 @@ export default function DoctorConsole() {
   const onSendRx = async () => {
     if (!selected) return alert("เลือกผู้ป่วยก่อน");
     if (rxItems.length === 0) return;
+    // ลบ total_units ออกจากทุก RxItem ก่อนส่ง
+    const cleanItems = rxItems.map(({ total_units, ...rest }) => rest);
     try {
-      await sendPrescription({ patient_id: selected.id, items: rxItems });
+      await sendPrescription({ patient_id: selected.id, items: cleanItems });
       setRxItems([]);
       alert("ส่งใบสั่งยาให้พนักงานแล้ว");
     } catch (e: any) {
       console.error("sendPrescription error:", e);
-      alert(e?.message || "ส่งใบสั่งยาไม่สำเร็จ");
+      const msg =
+        typeof e === "string"
+          ? e
+          : e?.message ||
+            (typeof e === "object" && Object.keys(e).length
+              ? JSON.stringify(e)
+              : "ส่งใบสั่งยาไม่สำเร็จ");
+      alert(msg);
     }
   };
 

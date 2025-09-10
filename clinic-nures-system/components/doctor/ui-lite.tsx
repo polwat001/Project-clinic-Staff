@@ -15,7 +15,7 @@ export function CardTitle(props) {
 }
 export function CardContent(props) {
   const { children, className="" } = props;
-  return <div className={`p-2 ${className}`}>{children}</div>;
+  return <div className={`p-1 ${className}`}>{children}</div>;
 }
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`w-full rounded-xl border px-3 py-2 outline-none focus:ring-2 ring-blue-300 ${props.className||""}`} />;
