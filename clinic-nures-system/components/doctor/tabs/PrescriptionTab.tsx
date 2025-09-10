@@ -2,6 +2,7 @@
 import * as React from 'react'
 import { Button, Input, Textarea } from '@/components/doctor/ui-lite'
 import type { RxItem } from '@/lib/types'
+import { useToast } from "@/components/ui/use-toast"; // เพิ่ม import
 
 type CatalogItem = {
   drug_code: string
@@ -27,7 +28,6 @@ export default function PrescriptionTab({
   removeRx,
   onSendRx,
   sending = false,
-  /** ออปชัน: อัปเดตรายการยาเฉพาะฟิลด์ (ถ้าไม่ส่งมา จะ fallback เป็นลบแล้วเพิ่มใหม่) */
   updateRx,
   /** ออปชัน: ส่ง vitals ล่าสุดมาเพื่อโชว์ด้านบน */
   lastVitals,
@@ -35,11 +35,13 @@ export default function PrescriptionTab({
   rxItems: RxItem[]
   addRx: (i: RxItem) => void
   removeRx: (code: string) => void
-  onSendRx: (advice?: string | null) => void
+  onSendRx: (advice?: string | null, items?: RxItem[]) => void // เพิ่ม items argument
   sending?: boolean
   updateRx?: (code: string, patch: Partial<RxItem>) => void
   lastVitals?: VitalsRO | null
 }) {
+  const { toast } = useToast(); // ใช้งาน toast
+
   const [search, setSearch] = React.useState('')
   const [catalog, setCatalog] = React.useState<CatalogItem[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -121,7 +123,7 @@ export default function PrescriptionTab({
   const handleAdd = React.useCallback(
     (m: CatalogItem) => {
       if (alreadyHas(m.drug_code)) {
-        alert('มีรายการยานี้อยู่แล้ว')
+        toast({ description: "มีรายการยานี้อยู่แล้ว", variant: "default" }); // ใช้ toast แทน alert
         return
       }
       const item: RxItem = {
@@ -135,7 +137,7 @@ export default function PrescriptionTab({
       }
       addRx(item)
     },
-    [addRx, alreadyHas]
+    [addRx, alreadyHas, toast]
   )
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -186,6 +188,9 @@ export default function PrescriptionTab({
       </div>
     )
   }
+
+  // ฟังก์ชันลบ total_units ออกจากทุก RxItem ก่อนส่ง
+  const cleanRxItems = rxItems.map(({ total_units, ...rest }) => rest);
 
   return (
     <div className="grid md:grid-cols-2 gap-4">
@@ -269,7 +274,7 @@ export default function PrescriptionTab({
               </div>
 
               {/* 🔢 ฟอร์มจำนวนยา */}
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs text-slate-600 mb-1">จำนวนต่อครั้ง</label>
                   <Input
@@ -330,16 +335,19 @@ export default function PrescriptionTab({
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button onClick={() => onSendRx(rxAdvice)} disabled={rxItems.length === 0 || sending}>
+          <Button
+            onClick={() => onSendRx(rxAdvice, cleanRxItems)}
+            disabled={rxItems.length === 0 || sending}
+          >
             {sending ? 'กำลังส่ง…' : 'ส่งใบสั่งยาให้พนักงาน'}
           </Button>
           <Button
             onClick={async () => {
               try {
-                await navigator.clipboard.writeText(JSON.stringify(rxItems, null, 2))
-                alert('คัดลอก JSON แล้ว')
+                await navigator.clipboard.writeText(JSON.stringify(cleanRxItems, null, 2))
+                toast({ description: "คัดลอก JSON แล้ว", variant: "default" }); // ใช้ toast แทน alert
               } catch {
-                alert('คัดลอกไม่สำเร็จ')
+                toast({ description: "คัดลอกไม่สำเร็จ", variant: "destructive" }); // ใช้ toast แทน alert
               }
             }}
             disabled={rxItems.length === 0 || sending}

@@ -1,7 +1,7 @@
 'use client'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Card, CardContent, Textarea } from '@/components/doctor/ui-lite'
-// import { useToast } from '@/components/ui/use-toast'  // ถ้ามีระบบ toast อยู่แล้ว
+import { useToast } from '@/components/ui/use-toast' // เพิ่ม import
 
 type Props = {
   diag: string
@@ -24,7 +24,8 @@ export default function DiagnosisTab({
 }: Props) {
   const [saving, setSaving] = useState(false)
   const [copying, setCopying] = useState(false)
-  // const { toast } = useToast()
+  const [editing, setEditing] = useState(false)
+  const { toast } = useToast() // ใช้งาน toast
 
   const patientSummary = useMemo(
     () =>
@@ -38,17 +39,18 @@ export default function DiagnosisTab({
     try {
       setSaving(true)
       await Promise.resolve(onSave())
-      // toast({ description: 'บันทึกเรียบร้อย' })
+      // toast({ description: 'บันทึกเวชระเบียนเรียบร้อย', variant: 'default' }) // แจ้งเตือนแบบ toast
     } finally {
       setSaving(false)
     }
-  }, [onSave])
+  }, [onSave, toast])
 
   const handleCopy = useCallback(async () => {
     try {
       setCopying(true)
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(patientSummary)
+        // toast({ description: 'คัดลอกคำแนะนำเรียบร้อย', variant: 'default' }) // แจ้งเตือนแบบ toast
       } else {
         const ta = document.createElement('textarea')
         ta.value = patientSummary
@@ -58,16 +60,12 @@ export default function DiagnosisTab({
         ta.select()
         document.execCommand('copy')
         document.body.removeChild(ta)
+        // toast({ description: 'คัดลอกคำแนะนำเรียบร้อย', variant: 'default' }) // แจ้งเตือนแบบ toast
       }
-      // toast({ description: 'คัดลอกแล้ว' })
-      alert('คัดลอกแล้ว') // fallback
-    } catch (e) {
-      console.error(e)
-      alert('ไม่สามารถคัดลอกได้ กรุณาลองอีกครั้ง')
     } finally {
       setCopying(false)
     }
-  }, [patientSummary])
+  }, [patientSummary, toast])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -95,6 +93,7 @@ export default function DiagnosisTab({
           value={diag}
           onChange={e => setDiag(e.target.value)}
           placeholder="เช่น J02.9 Acute pharyngitis"
+          disabled={!editing}
         />
 
         <label className="text-sm font-medium" htmlFor="plan">
@@ -106,6 +105,7 @@ export default function DiagnosisTab({
           value={plan}
           onChange={e => setPlan(e.target.value)}
           placeholder="คำสั่งตรวจ, เวชปฏิบัติ, ติดตามอาการ"
+          disabled={!editing}
         />
 
         <label className="text-sm font-medium" htmlFor="advice">
@@ -117,6 +117,7 @@ export default function DiagnosisTab({
           value={advice}
           onChange={e => setAdvice(e.target.value)}
           placeholder="เช่น ดื่มน้ำมากๆ พักผ่อน"
+          disabled={!editing}
         />
       </div>
 
@@ -129,19 +130,43 @@ export default function DiagnosisTab({
             </div>
 
             <div className="mt-3 flex gap-2">
-              <Button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                title="บันทึกเวชระเบียน (Ctrl/Cmd + S)"
-              >
-                {saving ? 'กำลังบันทึก…' : 'บันทึกเวชระเบียน'}
-              </Button>
+              {!editing ? (
+                <Button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="px-3 py-1 rounded bg-gray-100 border"
+                >
+                  แก้ไข
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      handleSave()
+                      setEditing(false)
+                    }}
+                    disabled={saving}
+                    className="px-3 py-1 rounded bg-green-100 border"
+                  >
+                    {saving ? 'กำลังบันทึก…' : 'บันทึก'}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    className="px-3 py-1 rounded bg-gray-100 border"
+                  >
+                    ยกเลิก
+                  </Button>
+                </>
+              )}
 
               <Button
                 type="button"
                 onClick={handleCopy}
                 disabled={copying || isAllEmpty}
+                className="px-3 py-1 rounded bg-blue-100 border"
               >
                 {copying ? 'กำลังคัดลอก…' : 'คัดลอกคำแนะนำ'}
               </Button>
