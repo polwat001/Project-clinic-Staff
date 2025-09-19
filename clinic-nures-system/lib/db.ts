@@ -172,6 +172,7 @@ export async function sendPrescription(params: {
     // เตรียมข้อมูลแบบ "เต็ม" (มีจำนวนยา)
     const detailedRows = params.items.map((i) => {
       const period_days = parsePeriodDays((i as any).period, i.period_days ?? i.days ?? null)
+      // ❗️อย่าใส่ total_units ใน insert payload
       const rowWithQty = {
         prescription_id: pres.id,
         drug_code: i.drug_code,
@@ -180,16 +181,10 @@ export async function sendPrescription(params: {
         frequency: (i as any).frequency ?? null,
         period: (i as any).period ?? null,
         note: (i as any).note ?? null,
-
-        // จำนวนยา
         qty_per_dose: (i as any).qty_per_dose ?? null,
         doses_per_day: (i as any).doses_per_day ?? null,
         period_days,
-        total_units: (i as any).total_units ?? (period_days ? calcTotalUnits({
-          qty_per_dose: (i as any).qty_per_dose ?? 1,
-          doses_per_day: (i as any).doses_per_day ?? 1,
-          period_days
-        }) : null),
+        // total_units: (i as any).total_units ?? ...  <-- ลบออก!
       }
       return rowWithQty
     })

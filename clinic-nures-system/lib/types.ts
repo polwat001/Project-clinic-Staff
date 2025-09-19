@@ -124,7 +124,7 @@ export type RxItem = {
   qty_per_dose?: number;     // จำนวนต่อครั้ง
   doses_per_day?: number;    // ครั้งต่อวัน
   period_days?: number;      // จำนวนวัน
-  total_units?: number;      // อ่านอย่างเดียว (qty_per_dose * doses_per_day * period_days)
+   // อ่านอย่างเดียว (qty_per_dose * doses_per_day * period_days)
 };
 
 export type PrescriptionItem = {

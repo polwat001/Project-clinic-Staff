@@ -53,19 +53,40 @@ export function AppointmentBooker({
   const [reason, setReason] = React.useState("ติดตามอาการ");
   const [note, setNote] = React.useState<string>("");
   const [saving, setSaving] = React.useState(false);
+  // Automatically set citizenId from patient.id_card (priority), fallback hn/citizen_id
+  const [citizenId, setCitizenId] = React.useState<string>(
+    () => patient?.id_card?.toString() || patient?.hn?.toString() || patient?.citizen_id?.toString() || ""
+  );
 
   const patientId: string | undefined =
     (patient?.id ?? patient?.patient_id)?.toString() || undefined;
 
+  React.useEffect(() => {
+    setCitizenId(
+      patient?.id_card?.toString() || patient?.hn?.toString() || patient?.citizen_id?.toString() || ""
+    );
+  }, [patient]);
+
   const saveAppt = async (row: Partial<Appt>) => {
     setSaving(true);
     try {
+      // Compose patient_name from patient object
+      let patientName =
+        patient?.name ||
+        patient?.patient_name ||
+        [patient?.prefix, patient?.first_name, patient?.last_name].filter(Boolean).join(" ").trim() ||
+        null;
+
       let payload: any = {
-        patient_id: patientId,
+        patient_id: patient?.id?.toString() || patientId,
+        hn: patient?.hn?.toString() || null,
+        citizen_id: citizenId.trim() || null, // ดึงจาก id_card ที่เลือก
+        patient_name: patientName,
         reason,
         start_at: row.start_at,
         end_at: row.end_at ?? null,
         note: note?.trim() || null,
+        scheduled_at: row.start_at, // Use start_at as scheduled_at
       };
 
       let insert = await supabase.from("appointments").insert([payload]).select().single();
@@ -73,9 +94,13 @@ export function AppointmentBooker({
       if (insert.error && insert.error.code === "42703") {
         const trimmed: any = {
           patient_id: payload.patient_id,
+          hn: payload.hn,
+          citizen_id: payload.citizen_id,
+          patient_name: payload.patient_name,
           reason: payload.reason,
           start_at: payload.start_at,
           end_at: payload.end_at,
+          scheduled_at: payload.scheduled_at,
         };
         insert = await supabase.from("appointments").insert([trimmed]).select().single();
       }
@@ -94,6 +119,10 @@ export function AppointmentBooker({
   const onManualSave = async () => {
     if (!patientId) {
       toast({ description: "ไม่พบรหัสผู้ป่วย", variant: "destructive" });
+      return;
+    }
+    if (!citizenId.trim()) {
+      toast({ description: "ไม่พบรหัสบัตรประชาชนของผู้ป่วย", variant: "destructive" });
       return;
     }
     if (!date || !time) {

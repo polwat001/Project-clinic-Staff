@@ -112,7 +112,7 @@ type Props = {
     weight_kg?: number | null;
     bmi?: number | null;
   }) => void;
-  onSendRx: (advice?: string | null) => void;
+  onSendRx: (advice?: string | null, items?: RxItemWithMealTiming[]) => void;
   loading: boolean;
   hx: string;
   setHx: (v: string) => void;
@@ -536,7 +536,9 @@ export default function Tabs(p: Props) {
               </div>
               <div className="mt-3">
                 <Button
-                  onClick={() =>
+                  onClick={() => {
+                    // แนบ Vitals ล่าสุด (latestVitals) หากมี
+                    const vitals = latestVitals;
                     p.onSaveVisit({
                       chief_complaint: p.cc,
                       diagnosis: p.diag,
@@ -546,22 +548,21 @@ export default function Tabs(p: Props) {
                       pe: p.pe,
                       icd10: p.icd10 ?? null,
                       dept: p.dept ?? null,
-                      // แนบ vitals ล่าสุดให้ visit นี้ ถ้ามี (ฟิลด์ฝั่ง DB รองรับอยู่แล้ว)
-                      ...(p.vitals
+                      ...(vitals
                         ? {
-                            bp_sys: p.vitals.bp_sys ?? null,
-                            bp_dia: p.vitals.bp_dia ?? null,
-                            pulse: p.vitals.pulse ?? null,
-                            temp_c: p.vitals.temp_c ?? null,
-                            rr: p.vitals.rr ?? null,
-                            spo2: p.vitals.spo2 ?? null,
-                            height_cm: p.vitals.height_cm ?? null,
-                            weight_kg: p.vitals.weight_kg ?? null,
-                            bmi: p.vitals.bmi ?? null,
+                            bp_sys: vitals.sys ?? null,
+                            bp_dia: vitals.dia ?? null,
+                            pulse: vitals.hr ?? null,
+                            temp_c: vitals.temp_c ?? null,
+                            rr: vitals.rr ?? null,
+                            spo2: vitals.spo2 ?? null,
+                            height_cm: vitals.height_cm ?? null,
+                            weight_kg: vitals.weight_kg ?? null,
+                            bmi: vitals.bmi ?? null,
                           }
                         : {}),
-                    })
-                  }
+                    });
+                  }}
                 >
                   บันทึกเวชระเบียน
                 </Button>
@@ -844,7 +845,8 @@ export default function Tabs(p: Props) {
                 <Button
                   disabled={p.rxItems.length === 0}
                   onClick={() => {
-                    // ลบ total_units ออกจากทุก RxItem ก่อนส่ง
+                    // Do NOT send total_units to backend (and do not request it in columns)
+                    // Make sure backend insert/update/query does not reference total_units column
                     const cleanItems = p.rxItems.map(({ total_units, ...rest }) => rest);
                     p.onSendRx(rxAdvice, cleanItems);
                   }}

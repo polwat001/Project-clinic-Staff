@@ -185,9 +185,10 @@ export default function DoctorConsole() {
   const onSendRx = async () => {
     if (!selected) return alert("เลือกผู้ป่วยก่อน");
     if (rxItems.length === 0) return;
-    // ลบ total_units ออกจากทุก RxItem ก่อนส่ง
+    // Remove total_units from every RxItem before sending
     const cleanItems = rxItems.map(({ total_units, ...rest }) => rest);
     try {
+      // Make sure sendPrescription does NOT send total_units in columns or payload
       await sendPrescription({ patient_id: selected.id, items: cleanItems });
       setRxItems([]);
       alert("ส่งใบสั่งยาให้พนักงานแล้ว");
