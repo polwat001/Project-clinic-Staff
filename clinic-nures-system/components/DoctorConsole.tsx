@@ -185,10 +185,17 @@ export default function DoctorConsole() {
   const onSendRx = async () => {
     if (!selected) return alert("เลือกผู้ป่วยก่อน");
     if (rxItems.length === 0) return;
-    // Remove total_units from every RxItem before sending
-    const cleanItems = rxItems.map(({ total_units, ...rest }) => rest);
+    // ดึง citizen_id จาก selected (id_card) และแนบไปกับแต่ละ RxItem
+    const citizenId = selected.id_card || "";
+    const cleanItems = rxItems.map(({ total_units, ...rest }) => ({
+      ...rest,
+      citizen_id: citizenId,
+    }));
+    // DEBUG: ตรวจสอบค่า cleanItems
+    // console.log("cleanItems to send:", cleanItems);
+
     try {
-      // Make sure sendPrescription does NOT send total_units in columns or payload
+      // ส่ง citizen_id ไปกับแต่ละรายการยา
       await sendPrescription({ patient_id: selected.id, items: cleanItems });
       setRxItems([]);
       alert("ส่งใบสั่งยาให้พนักงานแล้ว");

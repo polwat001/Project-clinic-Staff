@@ -813,7 +813,6 @@ export default function Tabs(p: Props) {
                         frequency: undefined,
                         period: undefined,
                         note: undefined,
-                        // 👇 ค่าเริ่มต้น
                         qty_per_dose: 1,
                         doses_per_day: 1,
                         period_days: 1,
@@ -845,9 +844,20 @@ export default function Tabs(p: Props) {
                 <Button
                   disabled={p.rxItems.length === 0}
                   onClick={() => {
-                    // Do NOT send total_units to backend (and do not request it in columns)
-                    // Make sure backend insert/update/query does not reference total_units column
-                    const cleanItems = p.rxItems.map(({ total_units, ...rest }) => rest);
+                    const citizenId = p.patient.id_card;
+                    if (!citizenId) {
+                      alert("ไม่พบหมายเลขบัตรประชาชนของผู้ป่วย");
+                      return;
+                    }
+                    const cleanItems = p.rxItems.map((item) => {
+                      const { total_units, ...rest } = item;
+                      return {
+                        ...rest,
+                        citizen_id: citizenId,
+                      };
+                    });
+
+
                     p.onSendRx(rxAdvice, cleanItems);
                   }}
                 >

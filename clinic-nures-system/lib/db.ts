@@ -154,26 +154,25 @@ export async function sendPrescription(params: {
   advice?: string | null
   items: RxItem[]
 }): Promise<{ id: string }> {
-  // 1) สร้าง prescription header
+  // 1) สร้าง prescription header พร้อมคำแนะนำแพทย์ (advice)
   const { data: pres, error } = await supabase
     .from('prescriptions')
     .insert({
       patient_id: params.patient_id,
       visit_id: params.visit_id ?? null,
       doctor_id: params.doctor_id ?? null,
-      advice: params.advice ?? null,
+      advice: params.advice ?? null, // บันทึกคำแนะนำหมอลง prescriptions
     })
     .select('id')
     .single()
   if (error) throw error
 
-  // 2) แทรกรายการยา
+  // 2) แทรกรายการยา (เชื่อม prescription_id)
   if (params.items.length) {
-    // เตรียมข้อมูลแบบ "เต็ม" (มีจำนวนยา)
+    // เตรียมข้อมูลแบบ "เต็ม" (มี citizen_id, ไม่ใส่ total_units)
     const detailedRows = params.items.map((i) => {
-      const period_days = parsePeriodDays((i as any).period, i.period_days ?? i.days ?? null)
-      // ❗️อย่าใส่ total_units ใน insert payload
-      const rowWithQty = {
+      const period_days = (i as any).period_days ?? null;
+      return {
         prescription_id: pres.id,
         drug_code: i.drug_code,
         name: i.name,
@@ -184,45 +183,14 @@ export async function sendPrescription(params: {
         qty_per_dose: (i as any).qty_per_dose ?? null,
         doses_per_day: (i as any).doses_per_day ?? null,
         period_days,
-        // total_units: (i as any).total_units ?? ...  <-- ลบออก!
+        meal_timing: (i as any).meal_timing ?? null,
+        citizen_id: (i as any).citizen_id ?? null, // บันทึก citizen_id
+        // ไม่ต้องใส่ total_units
       }
-      return rowWithQty
-    })
+    });
 
-    // Fallback (ไม่มีคอลัมน์จำนวนยา → เก็บแบบ sig/days ไว้ก่อน)
-    const fallbackRows = params.items.map((i) => {
-      const period_days = parsePeriodDays((i as any).period, i.period_days ?? i.days ?? null)
-      const sigParts = [i.strength, i.frequency, i.period].filter(Boolean)
-      return {
-        prescription_id: pres.id,
-        drug_code: i.drug_code,
-        name: i.name,
-        sig: i.sig ?? (sigParts.length ? sigParts.join(' · ') : null),
-        days: i.days ?? period_days ?? null,
-        note: (i as any).note ?? null,
-      }
-    })
-
-    const tryInsert = async () => {
-      // โปรเจกต์ส่วนใหญ่ใช้ prescription_items ถ้าไม่มีค่อยไป rx_items
-      let ins = await supabase.from('prescription_items').insert(detailedRows)
-      if (ins.error?.code === COL_NOT_EXISTS) {
-        // ตารางมี แต่ยังไม่มีคอลัมน์จำนวนยา → ลอง fallback
-        ins = await supabase.from('prescription_items').insert(fallbackRows)
-      }
-      if (ins.error?.code === TBL_NOT_EXISTS) {
-        // ไม่มี prescription_items → ใช้ rx_items
-        let ins2 = await supabase.from('rx_items').insert(detailedRows)
-        if (ins2.error?.code === COL_NOT_EXISTS) {
-          ins2 = await supabase.from('rx_items').insert(fallbackRows)
-        }
-        if (ins2.error) throw ins2.error
-        return
-      }
-      if (ins.error) throw ins.error
-    }
-
-    await tryInsert()
+    let ins = await supabase.from('prescription_items').insert(detailedRows);
+    if (ins.error) throw ins.error;
   }
 
   return { id: pres.id }
@@ -321,6 +289,38 @@ export async function createAppointment(input: {
       patient_id: input.patient_id,
       start_at: input.start_at,
       reason: input.reason ?? null,
+      note: input.note ?? null,
+      status: input.status ?? 'scheduled',
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as Appointment
+}
+
+/* ---------------- Vitals ล่าสุด (ดึงจาก visits) ---------------- */
+
+/** ดึงสัญญาณชีพล่าสุดของผู้ป่วยจากตาราง visits */
+export async function getLastVitalsFromVisits(patientId: string): Promise<Pick<
+  Visit,
+  'bp_sys' | 'bp_dia' | 'pulse' | 'temp_c' | 'rr' | 'spo2' | 'height_cm' | 'weight_kg' | 'bmi'
+> & { taken_at: string } | null> {
+  const { data, error } = await supabase
+    .from('visits')
+    .select('visit_at,visited_at,bp_sys,bp_dia,pulse,temp_c,rr,spo2,height_cm,weight_kg,bmi')
+    .eq('patient_id', patientId)
+    .order('visit_at', { ascending: false, nullsFirst: false })
+    .order('visited_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  const taken_at = data.visit_at ?? data.visited_at ?? new Date().toISOString()
+  const { bp_sys, bp_dia, pulse, temp_c, rr, spo2, height_cm, weight_kg, bmi } = data as any
+  return { taken_at, bp_sys, bp_dia, pulse, temp_c, rr, spo2, height_cm, weight_kg, bmi }
+}
       note: input.note ?? null,
       status: input.status ?? 'scheduled',
     })
