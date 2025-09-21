@@ -161,7 +161,7 @@ export async function sendPrescription(params: {
       patient_id: params.patient_id,
       visit_id: params.visit_id ?? null,
       doctor_id: params.doctor_id ?? null,
-      advice: params.advice ?? null, // บันทึกคำแนะนำหมอลง prescriptions
+      advice: params.advice ?? null,
     })
     .select('id')
     .single()
@@ -169,7 +169,7 @@ export async function sendPrescription(params: {
 
   // 2) แทรกรายการยา (เชื่อม prescription_id)
   if (params.items.length) {
-    // เตรียมข้อมูลแบบ "เต็ม" (มี citizen_id, ไม่ใส่ total_units)
+    // เพิ่ม citizen_id และ doctor_advice ให้กับแต่ละรายการ
     const detailedRows = params.items.map((i) => {
       const period_days = (i as any).period_days ?? null;
       return {
@@ -184,8 +184,8 @@ export async function sendPrescription(params: {
         doses_per_day: (i as any).doses_per_day ?? null,
         period_days,
         meal_timing: (i as any).meal_timing ?? null,
-        citizen_id: (i as any).citizen_id ?? null, // บันทึก citizen_id
-        // ไม่ต้องใส่ total_units
+        citizen_id: (i as any).citizen_id ?? null,
+        doctor_advice: (i as any).doctor_advice ?? null, // เพิ่ม doctor_advice
       }
     });
 
@@ -275,8 +275,7 @@ export async function searchMedicationCatalog(
   }))
 }
 
-/** สร้างนัดหมายแบบง่าย */
-export async function createAppointment(input: {
+/** สร้างนัดหมายแบบง่าย */export async function createAppointment(input: {
   patient_id: string
   start_at: string // ISO
   reason?: string | null
@@ -294,43 +293,10 @@ export async function createAppointment(input: {
     })
     .select('*')
     .single()
+
   if (error) throw error
   return data as Appointment
 }
-
-/* ---------------- Vitals ล่าสุด (ดึงจาก visits) ---------------- */
-
-/** ดึงสัญญาณชีพล่าสุดของผู้ป่วยจากตาราง visits */
-export async function getLastVitalsFromVisits(patientId: string): Promise<Pick<
-  Visit,
-  'bp_sys' | 'bp_dia' | 'pulse' | 'temp_c' | 'rr' | 'spo2' | 'height_cm' | 'weight_kg' | 'bmi'
-> & { taken_at: string } | null> {
-  const { data, error } = await supabase
-    .from('visits')
-    .select('visit_at,visited_at,bp_sys,bp_dia,pulse,temp_c,rr,spo2,height_cm,weight_kg,bmi')
-    .eq('patient_id', patientId)
-    .order('visit_at', { ascending: false, nullsFirst: false })
-    .order('visited_at', { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) throw error
-  if (!data) return null
-
-  const taken_at = data.visit_at ?? data.visited_at ?? new Date().toISOString()
-  const { bp_sys, bp_dia, pulse, temp_c, rr, spo2, height_cm, weight_kg, bmi } = data as any
-  return { taken_at, bp_sys, bp_dia, pulse, temp_c, rr, spo2, height_cm, weight_kg, bmi }
-}
-      note: input.note ?? null,
-      status: input.status ?? 'scheduled',
-    })
-    .select('*')
-    .single()
-  if (error) throw error
-  return data as Appointment
-}
-
-/* ---------------- Vitals ล่าสุด (ดึงจาก visits) ---------------- */
 
 /** ดึงสัญญาณชีพล่าสุดของผู้ป่วยจากตาราง visits */
 export async function getLastVitalsFromVisits(patientId: string): Promise<Pick<

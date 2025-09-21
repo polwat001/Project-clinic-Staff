@@ -1,5 +1,4 @@
 -- ปรับตาราง prescription_items ให้รองรับ meal_timing
--- ตาราง prescription_items พร้อมเชื่อมโยง prescription_id กับ prescriptions (ซึ่งมี advice)
 create table public.prescription_items (
   id uuid not null default gen_random_uuid(),
   prescription_id uuid not null,
@@ -28,16 +27,3 @@ create table public.prescription_items (
 ) tablespace pg_default;
 
 create index if not exists idx_items_rx_prescription on public.prescription_items using btree (prescription_id) tablespace pg_default;
-
--- ตาราง prescriptions (ต้องมี advice เพื่อเชื่อมโยงคำแนะนำหมอ)
-create table if not exists public.prescriptions (
-  id uuid not null default gen_random_uuid(),
-  patient_id uuid not null,
-  visit_id uuid null,
-  doctor_id uuid null,
-  advice text null,
-  created_at timestamptz not null default now(),
-  constraint prescriptions_pkey primary key (id)
-) tablespace pg_default;
-
-create index if not exists idx_prescriptions_patient on public.prescriptions using btree (patient_id) tablespace pg_default;

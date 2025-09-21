@@ -77,7 +77,7 @@ export default function PatientHeader({ patient, rightNode, onAskVitals }: Props
     allergy: allergy ?? "",
     chronic: chronic ?? "",
     address: patient.address ?? "",
-    cid: patient.cid ?? "",
+    cid: patient.id_card ?? "",
     insurance: patient.insurance ?? "",
     // เพิ่ม field อื่นๆ ที่จำเป็นได้ที่นี่
   };

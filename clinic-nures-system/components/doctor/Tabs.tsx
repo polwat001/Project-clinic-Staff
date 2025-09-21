@@ -32,7 +32,6 @@ const VisitBlock = ({ v }: { v: Visit }) => (
       {v.plan ? `Plan: ${v.plan}\n` : ""}
       {v.advice ? `Advice: ${v.advice}\n` : ""}
     </div>
-    );
   </div>
 );
 
@@ -839,11 +838,11 @@ export default function Tabs(p: Props) {
                   placeholder="ตัวอย่าง: ดื่มน้ำมากๆ พักผ่อน หลีกเลี่ยงของทอดเผ็ด หากมีไข้สูง/หอบ ให้กลับมาพบแพทย์ทันที"
                 />
               </div>
-
+              {/* ปุ่มส่งใบสั่งยา */}
               <div className="pt-2 flex flex-wrap gap-2">
                 <Button
                   disabled={p.rxItems.length === 0}
-                  onClick={() => {
+                  onClick={async () => {
                     const citizenId = p.patient.id_card;
                     if (!citizenId) {
                       alert("ไม่พบหมายเลขบัตรประชาชนของผู้ป่วย");
@@ -854,10 +853,29 @@ export default function Tabs(p: Props) {
                       return {
                         ...rest,
                         citizen_id: citizenId,
+                        doctor_advice: rxAdvice?.trim() || null, // แนบ doctor_advice ไปกับแต่ละ RxItem
                       };
                     });
 
+                    // เพิ่มการบันทึกคำแนะนำแพทย์ลงใน doctor_advice (table)
+                    try {
+                      if (rxAdvice && rxAdvice.trim()) {
+                        await supabase
+                          .from("doctor_advice")
+                          .insert([
+                            {
+                              patient_id: p.patient.id,
+                              citizen_id: citizenId,
+                              doctor_advice: rxAdvice.trim(),
+                              created_at: new Date().toISOString(),
+                            },
+                          ]);
+                      }
+                    } catch (e) {
+                      // ไม่ต้อง throw error เพื่อไม่ให้ขัดขวางการส่งใบสั่งยา
+                    }
 
+                    // ส่งใบสั่งยา (แนบ citizen_id และ doctor_advice ในแต่ละ RxItem)
                     p.onSendRx(rxAdvice, cleanItems);
                   }}
                 >

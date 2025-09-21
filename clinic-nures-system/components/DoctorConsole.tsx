@@ -182,21 +182,24 @@ export default function DoctorConsole() {
     }
   };
 
-  const onSendRx = async () => {
+  const onSendRx = async (advice?: string | null, items?: RxItem[]) => {
     if (!selected) return alert("เลือกผู้ป่วยก่อน");
-    if (rxItems.length === 0) return;
-    // ดึง citizen_id จาก selected (id_card) และแนบไปกับแต่ละ RxItem
+    const rxList = items ?? rxItems;
+    if (rxList.length === 0) return;
     const citizenId = selected.id_card || "";
-    const cleanItems = rxItems.map(({ total_units, ...rest }) => ({
+    // เพิ่ม doctor_advice ให้กับแต่ละ RxItem
+    const cleanItems = rxList.map(({ total_units, ...rest }) => ({
       ...rest,
       citizen_id: citizenId,
+      doctor_advice: advice ?? "", // แนบ doctor_advice ไปกับแต่ละรายการ
     }));
-    // DEBUG: ตรวจสอบค่า cleanItems
-    // console.log("cleanItems to send:", cleanItems);
 
     try {
-      // ส่ง citizen_id ไปกับแต่ละรายการยา
-      await sendPrescription({ patient_id: selected.id, items: cleanItems });
+      await sendPrescription({
+        patient_id: selected.id,
+        advice: advice ?? "",
+        items: cleanItems,
+      });
       setRxItems([]);
       alert("ส่งใบสั่งยาให้พนักงานแล้ว");
     } catch (e: any) {
