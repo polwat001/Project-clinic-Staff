@@ -903,15 +903,12 @@ const [selectedHistoryPatient, setSelectedHistoryPatient] = useState<Patient | n
             <Card>
   <CardHeader>รายการนัดหมาย</CardHeader>
   <CardContent>
-    {appointments.map(a => (
-      <div key={a.id} className="border rounded-xl p-3 flex items-center justify-between mb-2">
-        <div>
-          <div className="font-bold">{a.patient_name || a.name}</div>
-          <div className="text-xs text-slate-500">{a.scheduled_at}</div>
-        </div>
-        <Button onClick={() => handleCheckInOnline(a)}>Check-in</Button>
-      </div>
-    ))}
+    {/* เพิ่มตารางแสดงนัดหมายจาก appointments_patient */}
+    <div className="mb-4">
+      <div className="font-bold mb-2">นัดหมายผู้ป่วย (appointments_patient)</div>
+      <AppointmentPatientTable />
+    </div>
+    {/* นัดหมายเดิม */}
   </CardContent>
 </Card>
           )}
@@ -1003,6 +1000,158 @@ const [selectedHistoryPatient, setSelectedHistoryPatient] = useState<Patient | n
 )}
           </CardContent>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+// เพิ่มคอมโพเนนต์ย่อยสำหรับแสดงนัดหมายในแต่ละวันจาก appointments_patient
+function AppointmentPatientTable() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [now, setNow] = useState(() => new Date());
+
+  // อัปเดตเวลาปัจจุบันแบบเรียลไทม์
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // โหลดข้อมูลนัดหมายตามวันที่เลือก
+  useEffect(() => {
+    const fetchRows = async () => {
+      setLoading(true);
+      setErr(null);
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data, error } = await supabase
+          .from("appointments_patient")
+          .select("*")
+          .eq("date", selectedDate)
+          .order("time", { ascending: true });
+        if (error) throw error;
+        setRows(data ?? []);
+      } catch (e: any) {
+        setErr(e?.message || "โหลดข้อมูลนัดหมายไม่สำเร็จ");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRows();
+  }, [selectedDate]);
+
+  // วิเคราะห์จำนวนที่มาแล้ว/ยังไม่มา
+  const stats = useMemo(() => {
+    let arrived = 0, notArrived = 0;
+    rows.forEach(r => {
+      if (r.status === "arrived" || r.status === "checked_in") arrived++;
+      else notArrived++;
+    });
+    return { arrived, notArrived, total: rows.length };
+  }, [rows]);
+
+  return (
+    <div>
+      {/* แสดงวันเวลาเรียลไทม์ */}
+      <div className="flex items-center gap-4 mb-2">
+        <div className="text-sm text-slate-600">
+          ขณะนี้: {now.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "medium" })}
+        </div>
+        <div>
+          <label className="mr-2 text-sm">เลือกวันนัดหมาย:</label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            className="border rounded px-2 py-1 text-sm"
+          />
+        </div>
+      </div>
+      {/* วิเคราะห์สถิติ */}
+      <div className="mb-2 text-sm">
+        <span className="mr-4">รวม {stats.total} นัด</span>
+        <span className="text-green-700 mr-2">มาแล้ว {stats.arrived}</span>
+        <span className="text-red-700">ยังไม่มา {stats.notArrived}</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-[400px] border text-sm">
+          <thead>
+            <tr className="bg-blue-100">
+              <th className="px-2 py-1 border">เวลา</th>
+              <th className="px-2 py-1 border">ชื่อ</th>
+              <th className="px-2 py-1 border">เลขบัตร</th>
+              <th className="px-2 py-1 border">เบอร์โทร</th>
+              <th className="px-2 py-1 border">สถานะ</th>
+              <th className="px-2 py-1 border">เช็คอิน</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="text-slate-500 text-center py-2">กำลังโหลด...</td>
+              </tr>
+            ) : err ? (
+              <tr>
+                <td colSpan={6} className="text-red-600 text-center py-2">{err}</td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-slate-500 text-center py-2">ไม่มีนัดหมายวันนี้</td>
+              </tr>
+            ) : (
+              rows.map((r) => (
+                <tr key={r.id}>
+                  <td className="border px-2 py-1">{r.time}</td>
+                  <td className="border px-2 py-1">{r.name}</td>
+                  <td className="border px-2 py-1">{r.citizen_id}</td>
+                  <td className="border px-2 py-1">{r.phone}</td>
+                  <td className="border px-2 py-1">
+                    {r.status === "arrived" || r.status === "checked_in"
+                      ? <span className="text-green-600">มาแล้ว</span>
+                      : <span className="text-red-600">ยังไม่มา</span>
+                    }
+                  </td>
+                  <td className="border px-2 py-1">
+                    {r.status === "arrived" || r.status === "checked_in" ? (
+                      <span className="text-green-600">✓</span>
+                    ) : (
+                      <button
+                        className="px-2 py-1 rounded bg-blue-500 text-white text-xs"
+                        onClick={async () => {
+                          try {
+                            const supabase = createClient(
+                              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+                            );
+                            const { error } = await supabase
+                              .from("appointments_patient")
+                              .update({ status: "arrived" })
+                              .eq("id", r.id);
+                            if (error) throw error;
+                            setRows((prev) =>
+                              prev.map((row) =>
+                                row.id === r.id ? { ...row, status: "arrived" } : row
+                              )
+                            );
+                          } catch (e: any) {
+                            alert(e?.message || "เช็คอินไม่สำเร็จ");
+                          }
+                        }}
+                      >
+                        เช็คอิน
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
