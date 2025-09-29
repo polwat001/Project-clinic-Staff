@@ -1021,7 +1021,7 @@ function AppointmentPatientTable() {
 
   // โหลดข้อมูลนัดหมายตามวันที่เลือก
   useEffect(() => {
-    const fetchRows = async () => {
+    const fetchRows = async () => {  
       setLoading(true);
       setErr(null);
       try {
