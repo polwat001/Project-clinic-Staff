@@ -1151,7 +1151,8 @@ function AppointmentPatientTable() {
               ))
             )}
           </tbody>
-        </table>
+        </table>      
+        
       </div>
     </div>
   );
