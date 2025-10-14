@@ -740,6 +740,51 @@ const handleSendCase = async () => {
   // เพิ่ม state สำหรับค้นหาประวัติผู้ป่วย
 const [searchHistoryText, setSearchHistoryText] = useState('');
 const [selectedHistoryPatient, setSelectedHistoryPatient] = useState<Patient | null>(null);
+const [prescriptionItems, setPrescriptionItems] = useState<any[]>([]); // เพิ่ม state สำหรับ prescriptionItems
+
+  // โหลดข้อมูลประวัติผู้ป่วยเมื่อเลือกผู้ป่วยในขั้นตอนที่ 6
+  useEffect(() => {
+    const fetchPatientHistory = async () => {
+      if (!selectedHistoryPatient) return;
+      const sb = getSupabase();
+      if (!sb) return;
+      // ดึงข้อมูลประวัติการรักษาจากตาราง cases (ใช้ or เฉพาะฟิลด์ที่มีจริง)
+      const { data: casesData, error: casesError } = await sb
+        .from('cases')
+        .select('*')
+        .or(`hn.eq.${selectedHistoryPatient.hn},id_card.eq.${selectedHistoryPatient.idCard}`)
+        .order('created_at', { ascending: false });
+      if (!casesError && casesData) {
+        setCasesFromDoctor(casesData);
+      } else {
+        setCasesFromDoctor([]);
+      }
+    };
+    fetchPatientHistory();
+  }, [selectedHistoryPatient]);
+
+  // โหลด prescription_items เมื่อเลือกผู้ป่วยในประวัติ
+useEffect(() => {
+  const fetchPrescriptionItems = async () => {
+    if (!selectedHistoryPatient) {
+      setPrescriptionItems([]);
+      return;
+    }
+    const sb = getSupabase();
+    if (!sb) return;
+    // prescription_items ไม่มีฟิลด์ hn, ให้ใช้ citizen_id เท่านั้น
+    const { data, error } = await sb
+      .from('prescription_items')
+      .select('*')
+      .eq('citizen_id', selectedHistoryPatient.idCard);
+    if (!error && data) {
+      setPrescriptionItems(data);
+    } else {
+      setPrescriptionItems([]);
+    }
+  };
+  fetchPrescriptionItems();
+}, [selectedHistoryPatient]);
 
   return (
   <div className="w-full min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 flex flex-col">
@@ -990,7 +1035,8 @@ const [selectedHistoryPatient, setSelectedHistoryPatient] = useState<Patient | n
           hn={selectedHistoryPatient.hn}
           patient={selectedHistoryPatient}
           casesFromDoctor={casesFromDoctor ?? []}
-          casesSent={casesSent ?? []}   // <-- เพิ่มบรรทัดนี้
+          casesSent={casesSent ?? []}
+          prescriptionItems={prescriptionItems} // ส่ง prescriptionItems เข้าไป
         />
       ) : (
         <div className="text-gray-400 text-center mt-12">กรุณาเลือกผู้ป่วยเพื่อดูประวัติการรักษา</div>
