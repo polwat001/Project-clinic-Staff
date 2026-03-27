@@ -66,7 +66,6 @@ const machines: Machine[] = [
   { id: "D2", name: "เครื่องอบแห้ง D2", status: "standby", temperature: 25, pressure: 0, speed: 0 },
 ]
 
-// Generate mock telemetry data for 15 minutes
 function generateTelemetryData() {
   const data = []
   const now = new Date()
@@ -112,8 +111,7 @@ export default function ControlPanelPage() {
   const [selectedMachine, setSelectedMachine] = useState<Machine>(machines[1])
   const [telemetryData] = useState(generateTelemetryData)
   const [confirmAction, setConfirmAction] = useState<"start" | "stop" | "pause" | "emergency" | "reset" | null>(null)
-  
-  // Parameter states
+
   const [tempSetting, setTempSetting] = useState(selectedMachine.temperature)
   const [pressureSetting, setPressureSetting] = useState(selectedMachine.pressure)
   const [speedSetting, setSpeedSetting] = useState([selectedMachine.speed])
@@ -126,7 +124,6 @@ export default function ControlPanelPage() {
   }
 
   const handleConfirmAction = () => {
-    // In a real app, this would send the command to the machine
     setConfirmAction(null)
   }
 
@@ -159,9 +156,7 @@ export default function ControlPanelPage() {
         </p>
       </div>
 
-      {/* Master-Detail Layout */}
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Machine List - Left */}
         <div className="lg:col-span-4">
           <Card className="border-borde text-black">
             <CardHeader className="pb-3">
@@ -176,28 +171,26 @@ export default function ControlPanelPage() {
                 return (
                   <button
                     key={machine.id}
+                    type="button"
                     onClick={() => handleMachineSelect(machine)}
-                    className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all ${
-                      selectedMachine.id === machine.id
-                        ? "border-primary bg-primary/10"
-                        : machineConfig.bg
+                    className={`w-full rounded-lg border p-3 text-left transition ${machineConfig.bg} ${
+                      selectedMachine.id === machine.id ? "ring-2 ring-primary/40" : "border-border"
                     }`}
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                      <Cog className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-muted-foreground">{machine.id}</span>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${machineConfig.bg}`}>
                         <MachineIcon className={`h-4 w-4 ${machineConfig.iconClass}`} />
                       </div>
-                      <p className="text-sm font-medium text-foreground">{machine.name}</p>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-foreground">{machine.name}</p>
+                        <p className="text-xs text-muted-foreground">{machineConfig.label}</p>
+                      </div>
+                      {machine.status === "error" && machine.errorCode ? (
+                        <span className="rounded-full bg-danger/10 px-2 py-0.5 text-xs text-danger">
+                          {machine.errorCode}
+                        </span>
+                      ) : null}
                     </div>
-                    {machine.status === "error" && (
-                      <span className="rounded bg-danger/20 px-2 py-0.5 font-mono text-xs text-danger">
-                        {machine.errorCode}
-                      </span>
-                    )}
                   </button>
                 )
               })}
@@ -205,233 +198,141 @@ export default function ControlPanelPage() {
           </Card>
         </div>
 
-        {/* Control Panel - Right */}
-        <div className="flex flex-col gap-6 lg:col-span-8">
-          {/* Machine Header */}
-          <Card className="border-borde text-black">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted">
-                    <Cog className="h-7 w-7 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-foreground">{selectedMachine.name}</h2>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">รหัส: {selectedMachine.id}</span>
-                      <span className={`flex items-center gap-1 text-sm ${config.iconClass}`}>
-                        <StatusIcon className="h-4 w-4" />
-                        {config.label}
-                      </span>
-                    </div>
+        <div className="space-y-6 lg:col-span-8">
+          <Card className="border-border text-black">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <StatusIcon className={`h-5 w-5 ${config.iconClass}`} />
+                {selectedMachine.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs text-muted-foreground">อุณหภูมิ</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-2xl font-semibold text-foreground">{selectedMachine.temperature}°C</span>
+                    <Thermometer className="h-5 w-5 text-muted-foreground" />
                   </div>
                 </div>
-                {selectedMachine.runtime && (
-                  <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
-                    <Timer className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-mono text-sm text-foreground">{selectedMachine.runtime}</span>
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs text-muted-foreground">แรงดัน</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-2xl font-semibold text-foreground">{selectedMachine.pressure} bar</span>
+                    <Gauge className="h-5 w-5 text-muted-foreground" />
                   </div>
-                )}
+                </div>
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs text-muted-foreground">ความเร็ว</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-2xl font-semibold text-foreground">{selectedMachine.speed}%</span>
+                    <Timer className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </div>
               </div>
 
               {selectedMachine.status === "error" && (
-                <div className="mt-4 rounded-lg bg-danger/10 p-4">
+                <div className="rounded-lg border border-danger/40 bg-danger/10 p-3">
                   <div className="flex items-center gap-2 text-danger">
-                    <AlertCircle className="h-5 w-5" />
-                    <span className="font-medium">Error: {selectedMachine.errorCode}</span>
+                    <AlertOctagon className="h-4 w-4" />
+                    <span className="text-sm font-semibold">{selectedMachine.errorCode}</span>
                   </div>
-                  <p className="mt-1 text-sm text-danger/80">{selectedMachine.errorMessage}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{selectedMachine.errorMessage}</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
 
-          {/* Real-time Telemetry */}
-          <Card className="border-borde text-black">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                ข้อมูล Real-time (15 นาทีที่ผ่านมา)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={telemetryData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="time" 
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                    />
-                    <YAxis 
-                      yAxisId="temp"
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      domain={[0, 200]}
-                    />
-                    <YAxis 
-                      yAxisId="pressure"
-                      orientation="right"
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      domain={[0, 250]}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        color: "hsl(var(--foreground))"
-                      }}
-                    />
-                    <Line 
-                      yAxisId="temp"
-                      type="monotone" 
-                      dataKey="temperature" 
-                      stroke="hsl(var(--danger))" 
-                      strokeWidth={2}
-                      dot={false}
-                      name="อุณหภูมิ (°C)"
-                    />
-                    <Line 
-                      yAxisId="pressure"
-                      type="monotone" 
-                      dataKey="pressure" 
-                      stroke="hsl(var(--chart-2))" 
-                      strokeWidth={2}
-                      dot={false}
-                      name="แรงดัน (PSI)"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-2 flex items-center justify-center gap-6 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-danger" />
-                  <span className="text-muted-foreground">อุณหภูมิ (°C)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-chart-2" />
-                  <span className="text-muted-foreground">แรงดัน (PSI)</span>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => setConfirmAction("start")}>
+                  <Play className="mr-2 h-4 w-4" />
+                  เริ่มงาน
+                </Button>
+                <Button variant="secondary" onClick={() => setConfirmAction("pause")}>
+                  <Pause className="mr-2 h-4 w-4" />
+                  พักเครื่อง
+                </Button>
+                <Button variant="outline" onClick={() => setConfirmAction("stop")}>
+                  <Square className="mr-2 h-4 w-4" />
+                  หยุดเครื่อง
+                </Button>
+                <Button variant="destructive" onClick={() => setConfirmAction("emergency")}>
+                  <AlertOctagon className="mr-2 h-4 w-4" />
+                  หยุดฉุกเฉิน
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmAction("reset")}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  รีเซ็ต
+                </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Parameter Controls */}
-          <Card className="border-borde text-black">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                ตั้งค่าพารามิเตอร์
+          <Card className="border-border text-black">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">Telemetry 15 นาทีล่าสุด</CardTitle>
+            </CardHeader>
+            <CardContent className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={telemetryData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="temperature" stroke="#f97316" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="pressure" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border text-black">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <Cog className="h-5 w-5" />
+                ปรับตั้งค่าพารามิเตอร์
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-3">
-                {/* Temperature */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Thermometer className="h-4 w-4 text-danger" />
-                      <span className="text-sm text-foreground">อุณหภูมิ</span>
-                    </div>
-                    <span className="font-mono text-sm text-muted-foreground">{tempSetting}°C</span>
-                  </div>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">อุณหภูมิเป้าหมาย (°C)</label>
                   <Input
                     type="number"
                     value={tempSetting}
-                    onChange={(e) => setTempSetting(Number(e.target.value))}
-                    className="bg-muted/50 border-borde text-black"
-                    disabled={selectedMachine.status !== "running"}
+                    onChange={(event) => setTempSetting(Number(event.target.value || 0))}
                   />
                 </div>
-
-                {/* Pressure */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Gauge className="h-4 w-4 text-chart-2" />
-                      <span className="text-sm text-foreground">แรงดัน</span>
-                    </div>
-                    <span className="font-mono text-sm text-muted-foreground">{pressureSetting} PSI</span>
-                  </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">แรงดันเป้าหมาย (bar)</label>
                   <Input
                     type="number"
                     value={pressureSetting}
-                    onChange={(e) => setPressureSetting(Number(e.target.value))}
-                    className="bg-muted/50 border-borde text-black"
-                    disabled={selectedMachine.status !== "running"}
-                  />
-                </div>
-
-                {/* Speed */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Timer className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-foreground">ความเร็ว</span>
-                    </div>
-                    <span className="font-mono text-sm text-muted-foreground">{speedSetting[0]}%</span>
-                  </div>
-                  <Slider
-                    value={speedSetting}
-                    onValueChange={setSpeedSetting}
-                    max={100}
-                    step={5}
-                    disabled={selectedMachine.status !== "running"}
+                    onChange={(event) => setPressureSetting(Number(event.target.value || 0))}
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Action Buttons */}
-          <Card className="border-borde text-black">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                สั่งการ
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={() => setConfirmAction("start")}
-                  disabled={selectedMachine.status === "running" || selectedMachine.status === "maintenance"}
-                  className="bg-success text-success-foreground hover:bg-success/90"
-                >
-                  <Play className="mr-2 h-4 w-4" />
-                  เริ่มการทำงาน
+              <div>
+                <label className="text-xs text-muted-foreground">ความเร็วเครื่อง (%)</label>
+                <div className="mt-2 flex items-center gap-3">
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={speedSetting}
+                    onValueChange={setSpeedSetting}
+                  />
+                  <span className="w-10 text-right text-sm text-foreground">
+                    {Math.round(speedSetting[0] || 0)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button>
+                  <Wrench className="mr-2 h-4 w-4" />
+                  ส่งค่าตั้ง
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmAction("pause")}
-                  disabled={selectedMachine.status !== "running"}
-                >
-                  <Pause className="mr-2 h-4 w-4" />
-                  พักการทำงาน
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmAction("stop")}
-                  disabled={selectedMachine.status !== "running"}
-                >
-                  <Square className="mr-2 h-4 w-4" />
-                  หยุดการทำงาน
-                </Button>
-                {selectedMachine.status === "error" && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setConfirmAction("reset")}
-                  >
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    รีเซ็ต Error
-                  </Button>
-                )}
-                <Button
-                  onClick={() => setConfirmAction("emergency")}
-                  className="bg-danger text-danger-foreground hover:bg-danger/90"
-                >
-                  <AlertOctagon className="mr-2 h-4 w-4" />
-                  หยุดฉุกเฉิน
+                <Button variant="outline">
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  บันทึกโปรไฟล์
                 </Button>
               </div>
             </CardContent>
@@ -439,36 +340,18 @@ export default function ControlPanelPage() {
         </div>
       </div>
 
-      {/* Confirmation Dialog */}
-      <AlertDialog open={confirmAction !== null} onOpenChange={() => setConfirmAction(null)}>
-        <AlertDialogContent className="bg-card border-borde text-black">
+      <AlertDialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
-              {confirmAction === "emergency" ? (
-                <AlertOctagon className="h-5 w-5 text-danger" />
-              ) : (
-                <Cog className="h-5 w-5" />
-              )}
-              ยืนยันการดำเนินการ
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-warning" />
+              ยืนยันคำสั่ง
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              {getActionDescription()}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{getActionDescription()}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-muted text-foreground hover:bg-muted/80">
-              ยกเลิก
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmAction}
-              className={
-                confirmAction === "emergency"
-                  ? "bg-danger text-danger-foreground hover:bg-danger/90"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              }
-            >
-              ยืนยัน
-            </AlertDialogAction>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction}>ยืนยัน</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

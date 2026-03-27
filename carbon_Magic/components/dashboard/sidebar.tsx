@@ -26,11 +26,11 @@ interface SidebarProps {
 
 const menuItems = [
   { icon: LayoutDashboard, label: "ภาพรวม", href: "/" },
-  { icon: ClipboardList, label: "เตรียมการผลิต", href: "/pre-production" },
-  { icon: Wrench, label: "บันทึกผลผลิต", href: "/operator" },
-  { icon: CheckSquare, label: "ตรวจสอบ/อนุมัติ", href: "/approval" },
-  { icon: BarChart3, label: "แดชบอร์ดวางแผน", href: "/planning" },
-  { icon: SlidersHorizontal, label: "แผงควบคุม", href: "/control" },
+  { icon: ClipboardList, label: "Smart BOM", href: "/pre-production" },
+  { icon: Wrench, label: "Operator Entry", href: "/operator" },
+  { icon: SlidersHorizontal, label: "QC Reject", href: "/control" },
+  { icon: CheckSquare, label: "Supervisor Approval", href: "/approval" },
+  { icon: BarChart3, label: "Executive Dashboard", href: "/planning" },
   { icon: History, label: "ประวัติ", href: "/history" },
   { icon: Settings, label: "การตั้งค่า", href: "/settings" },
 ]

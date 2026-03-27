@@ -9,553 +9,398 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  CheckCircle2,
-  Clock,
-  Edit3,
-  FileCheck2,
-  History,
-  AlertTriangle,
-  Send,
-  User,
-  XCircle,
-} from "lucide-react"
+  "use client"
 
-interface PendingApproval {
-  id: string
-  orderId: string
-  productName: string
-  operator: string
-  shift: string
-  goodCount: number
-  defectCount: number
-  workTime: string
-  startTime: string
-  endTime: string
-  submittedAt: string
-  status: "pending" | "approved" | "rejected"
-}
+  import { useMemo, useState } from "react"
+  import { DashboardShell } from "@/components/dashboard/dashboard-shell"
+  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+  import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from "@/components/ui/table"
+  import { Badge } from "@/components/ui/badge"
+  import { Button } from "@/components/ui/button"
+  import { Input } from "@/components/ui/input"
+  import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+  } from "@/components/ui/dialog"
+  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+  import { AlertTriangle, CheckCircle2, ClipboardCheck, Edit3, FileCheck2, History, Send } from "lucide-react"
 
-interface AuditLog {
-  id: string
-  timestamp: string
-  action: string
-  user: string
-  details: string
-}
-
-const pendingApprovals: PendingApproval[] = [
-  {
-    id: "APP-001",
-    orderId: "PO-2024-010",
-    productName: "Carbon Filter Type A",
-    operator: "สมชาย มั่นคง",
-    shift: "กะเช้า",
-    goodCount: 485,
-    defectCount: 15,
-    workTime: "07:32:15",
-    startTime: "06:00:00",
-    endTime: "13:32:15",
-    submittedAt: "13:35:00",
-    status: "pending",
-  },
-  {
-    id: "APP-002",
-    orderId: "PO-2024-011",
-    productName: "Carbon Block B200",
-    operator: "วิภา ใจดี",
-    shift: "กะเช้า",
-    goodCount: 320,
-    defectCount: 8,
-    workTime: "06:45:30",
-    startTime: "06:00:00",
-    endTime: "12:45:30",
-    submittedAt: "12:50:00",
-    status: "pending",
-  },
-  {
-    id: "APP-003",
-    orderId: "PO-2024-012",
-    productName: "Activated Carbon X",
-    operator: "ประยุทธ์ เก่งมาก",
-    shift: "กะบ่าย",
-    goodCount: 250,
-    defectCount: 5,
-    workTime: "05:20:00",
-    startTime: "14:00:00",
-    endTime: "19:20:00",
-    submittedAt: "19:25:00",
-    status: "pending",
-  },
-]
-
-const initialAuditLogs: AuditLog[] = [
-  {
-    id: "1",
-    timestamp: "13:35:00",
-    action: "ส่งข้อมูล",
-    user: "สมชาย มั่นคง",
-    details: "ส่งรายงานผลผลิตประจำกะเช้า PO-2024-010",
-  },
-  {
-    id: "2",
-    timestamp: "12:50:00",
-    action: "ส่งข้อมูล",
-    user: "วิภา ใจดี",
-    details: "ส่งรายงานผลผลิตประจำกะเช้า PO-2024-011",
-  },
-]
-
-export default function ApprovalPage() {
-  const [approvals, setApprovals] = useState(pendingApprovals)
-  const [selectedApproval, setSelectedApproval] = useState<PendingApproval | null>(null)
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(initialAuditLogs)
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [showApproveDialog, setShowApproveDialog] = useState(false)
-  const [editedGoodCount, setEditedGoodCount] = useState(0)
-  const [editedDefectCount, setEditedDefectCount] = useState(0)
-
-  const pendingCount = approvals.filter((a) => a.status === "pending").length
-  const approvedCount = approvals.filter((a) => a.status === "approved").length
-
-  const handleSelectApproval = (approval: PendingApproval) => {
-    setSelectedApproval(approval)
-    setEditedGoodCount(approval.goodCount)
-    setEditedDefectCount(approval.defectCount)
+  interface ShiftRecord {
+    id: string
+    orderId: string
+    operator: string
+    shift: string
+    goodCount: number
+    defectCount: number
+    submittedAt: string
+    status: "pending" | "approved"
   }
 
-  const handleEdit = () => {
-    setShowEditDialog(true)
+  interface AuditLog {
+    id: string
+    timestamp: string
+    actor: string
+    action: string
+    details: string
   }
 
-  const confirmEdit = () => {
-    if (!selectedApproval) return
+  interface EditDraft {
+    rowId: string
+    field: "goodCount" | "defectCount"
+    originalValue: number
+    nextValue: number
+  }
 
-    const now = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })
-    const changes: string[] = []
+  const initialRecords: ShiftRecord[] = [
+    {
+      id: "APR-001",
+      orderId: "PO-2026-110",
+      operator: "สมชาย มั่นคง",
+      shift: "กะเช้า",
+      goodCount: 480,
+      defectCount: 18,
+      submittedAt: "13:35",
+      status: "pending",
+    },
+    {
+      id: "APR-002",
+      orderId: "PO-2026-111",
+      operator: "วิภา ใจดี",
+      shift: "กะเช้า",
+      goodCount: 510,
+      defectCount: 9,
+      submittedAt: "13:42",
+      status: "pending",
+    },
+    {
+      id: "APR-003",
+      orderId: "PO-2026-112",
+      operator: "ประยุทธ์ เก่งมาก",
+      shift: "กะบ่าย",
+      goodCount: 260,
+      defectCount: 4,
+      submittedAt: "20:10",
+      status: "pending",
+    },
+  ]
 
-    if (editedGoodCount !== selectedApproval.goodCount) {
-      changes.push(`งานดี ${selectedApproval.goodCount} → ${editedGoodCount}`)
-    }
-    if (editedDefectCount !== selectedApproval.defectCount) {
-      changes.push(`ของเสีย ${selectedApproval.defectCount} → ${editedDefectCount}`)
-    }
+  const initialLogs: AuditLog[] = [
+    {
+      id: "LG-1",
+      timestamp: "13:35",
+      actor: "สมชาย มั่นคง",
+      action: "submit",
+      details: "ส่งผลผลิตกะเช้า PO-2026-110",
+    },
+    {
+      id: "LG-2",
+      timestamp: "13:42",
+      actor: "วิภา ใจดี",
+      action: "submit",
+      details: "ส่งผลผลิตกะเช้า PO-2026-111",
+    },
+  ]
 
-    if (changes.length > 0) {
-      const newLog: AuditLog = {
+  export default function ApprovalPage() {
+    const [records, setRecords] = useState<ShiftRecord[]>(initialRecords)
+    const [auditLogs, setAuditLogs] = useState<AuditLog[]>(initialLogs)
+    const [editDraft, setEditDraft] = useState<EditDraft | null>(null)
+    const [editReason, setEditReason] = useState("")
+    const [showApproveDialog, setShowApproveDialog] = useState(false)
+    const [selectedRowId, setSelectedRowId] = useState<string | null>(null)
+
+    const pendingRecords = useMemo(() => records.filter((item) => item.status === "pending"), [records])
+    const approvedCount = useMemo(() => records.filter((item) => item.status === "approved").length, [records])
+
+    const pushAuditLog = (log: Omit<AuditLog, "id" | "timestamp">) => {
+      const timestamp = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })
+      const next: AuditLog = {
         id: Date.now().toString(),
-        timestamp: now,
-        action: "แก้ไขข้อมูล",
-        user: "วิชัย (หัวหน้ากะ)",
-        details: `แก้ไข ${selectedApproval.orderId}: ${changes.join(", ")}`,
+        timestamp,
+        ...log,
       }
-      setAuditLogs([newLog, ...auditLogs])
+      setAuditLogs((prev) => [next, ...prev])
+    }
 
-      setApprovals(approvals.map((a) =>
-        a.id === selectedApproval.id
-          ? { ...a, goodCount: editedGoodCount, defectCount: editedDefectCount }
-          : a
-      ))
-      setSelectedApproval({
-        ...selectedApproval,
-        goodCount: editedGoodCount,
-        defectCount: editedDefectCount,
+    const openEditDialog = (rowId: string, field: "goodCount" | "defectCount", originalValue: number) => {
+      setEditDraft({ rowId, field, originalValue, nextValue: originalValue })
+      setEditReason("")
+    }
+
+    const confirmEdit = () => {
+      if (!editDraft || !editReason.trim()) return
+
+      setRecords((prev) =>
+        prev.map((row) =>
+          row.id === editDraft.rowId
+            ? {
+                ...row,
+                [editDraft.field]: Math.max(0, editDraft.nextValue),
+              }
+            : row
+        )
+      )
+
+      pushAuditLog({
+        actor: "หัวหน้ากะ วิชัย",
+        action: "edit",
+        details: `${editDraft.rowId} แก้ ${editDraft.field} จาก ${editDraft.originalValue} เป็น ${Math.max(0, editDraft.nextValue)} | เหตุผล: ${editReason}`,
       })
+
+      setEditDraft(null)
     }
 
-    setShowEditDialog(false)
-  }
-
-  const handleApprove = () => {
-    setShowApproveDialog(true)
-  }
-
-  const confirmApprove = () => {
-    if (!selectedApproval) return
-
-    const now = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })
-    const newLog: AuditLog = {
-      id: Date.now().toString(),
-      timestamp: now,
-      action: "อนุมัติ",
-      user: "วิชัย (หัวหน้ากะ)",
-      details: `อนุมัติและส่งต่อ ${selectedApproval.orderId} ไปยังระบบบัญชี`,
+    const requestApprove = (rowId: string) => {
+      setSelectedRowId(rowId)
+      setShowApproveDialog(true)
     }
-    setAuditLogs([newLog, ...auditLogs])
 
-    setApprovals(approvals.map((a) =>
-      a.id === selectedApproval.id ? { ...a, status: "approved" as const } : a
-    ))
-    setSelectedApproval({ ...selectedApproval, status: "approved" })
-    setShowApproveDialog(false)
-  }
+    const confirmApprove = () => {
+      if (!selectedRowId) return
 
-  return (
-    <DashboardShell>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">ตรวจสอบและอนุมัติ</h1>
-        <p className="text-sm text-muted-foreground">
-          ตรวจสอบข้อมูลผลผลิตและอนุมัติส่งต่อไปยังระบบบัญชี
-        </p>
-      </div>
+      setRecords((prev) => prev.map((row) => (row.id === selectedRowId ? { ...row, status: "approved" } : row)))
 
-      {/* Summary Cards */}
-      <div className="mb-6 grid grid-cols-3 gap-4">
-        <Card className="border-border text-black">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-warning/20 p-2">
-                <Clock className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">รออนุมัติ</p>
-                <p className="text-2xl font-bold">{pendingCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border text-black">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-success/20 p-2">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">อนุมัติแล้ว</p>
-                <p className="text-2xl font-bold">{approvedCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border text-black">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-primary/20 p-2">
-                <FileCheck2 className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">ส่งต่อบัญชี</p>
-                <p className="text-2xl font-bold">{approvedCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      const row = records.find((item) => item.id === selectedRowId)
+      if (row) {
+        pushAuditLog({
+          actor: "หัวหน้ากะ วิชัย",
+          action: "approve",
+          details: `${row.orderId} Approved และ Sync เข้า Costing`,
+        })
+      }
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Panel - Pending Approvals */}
-        <Card className="border-border text-black">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Clock className="h-5 w-5 text-warning" />
-              รายการที่รออนุมัติ
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs">เลขที่ PO</TableHead>
+      setShowApproveDialog(false)
+      setSelectedRowId(null)
+    }
+
+    return (
+      <DashboardShell>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Supervisor Approval</h1>
+          <p className="text-sm text-muted-foreground">
+            ตรวจสอบผลผลิตที่จบกะแล้ว, แก้ไขพร้อมเหตุผล, เก็บ Audit Trail และอนุมัติส่งบัญชี
+          </p>
+        </div>
+
+        <div className="mb-6 grid gap-4 md:grid-cols-3">
+          <Card className="border-border text-black">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground">รอดำเนินการ</p>
+              <p className="mt-1 text-2xl font-bold text-warning">{pendingRecords.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border text-black">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground">Approved</p>
+              <p className="mt-1 text-2xl font-bold text-success">{approvedCount}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border text-black">
+            <CardContent className="pt-6">
+              <p className="text-xs text-muted-foreground">Sync Costing</p>
+              <p className="mt-1 text-sm font-medium text-primary">เปิดเมื่อกดอนุมัติแต่ละรายการ</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <Card className="border-border text-black">
                   <TableHead className="text-xs">พนักงาน</TableHead>
-                  <TableHead className="text-xs text-right text-green-500">งานดี</TableHead>
-                  <TableHead className="text-xs text-right text-red-500">ของเสีย</TableHead>
-                  <TableHead className="text-xs">สถานะ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {approvals.map((approval) => (
-                  <TableRow
-                    key={approval.id}
-                    className={`cursor-pointer transition-colors hover:bg-muted/50 ${
-                      selectedApproval?.id === approval.id ? "bg-muted/70" : ""
-                    }`}
-                    onClick={() => handleSelectApproval(approval)}
-                  >
-                    <TableCell className="font-mono text-xs font-medium text-primary">
-                      {approval.orderId}
-                    </TableCell>
-                    <TableCell className="text-sm">{approval.operator}</TableCell>
-                    <TableCell className="text-right font-mono text-sm text-success">
-                      {approval.goodCount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-danger">
-                      {approval.defectCount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      {approval.status === "pending" ? (
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ClipboardCheck className="h-5 w-5 text-warning" />
+                ตารางผลผลิตที่รออนุมัติ
+              </CardTitle>
                         <Badge className="bg-warning text-warning-foreground">รอดำเนินการ</Badge>
                       ) : approval.status === "approved" ? (
                         <Badge className="bg-success text-success-foreground">อนุมัติแล้ว</Badge>
                       ) : (
                         <Badge className="bg-danger text-danger-foreground">ปฏิเสธ</Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    <TableHead className="text-xs">ใบงาน</TableHead>
+                    <TableHead className="text-xs">ใบสั่งผลิต</TableHead>
+                    <TableHead className="text-xs">Operator</TableHead>
+                    <TableHead className="text-xs">กะ</TableHead>
+                    <TableHead className="text-xs text-right">งานดี</TableHead>
+                    <TableHead className="text-xs text-right">ของเสีย</TableHead>
+                    <TableHead className="text-xs text-right">Reject %</TableHead>
+                    <TableHead className="text-xs">สถานะ</TableHead>
+                    <TableHead className="text-xs">Action</TableHead>
           </CardContent>
         </Card>
 
-        {/* Right Panel - Detail & Audit Log */}
-        <div className="space-y-4">
-          {/* Detail Card */}
-          <Card className="border-border text-black">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">
-                {selectedApproval ? `รายละเอียด: ${selectedApproval.orderId}` : "รายละเอียดข้อมูล"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {selectedApproval ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">สินค้า</p>
-                      <p className="font-medium">{selectedApproval.productName}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">กะ</p>
-                      <p className="font-medium">{selectedApproval.shift}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">พนักงาน</p>
-                      <p className="font-medium">{selectedApproval.operator}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">เวลาทำงาน</p>
-                      <p className="font-mono font-medium">{selectedApproval.workTime}</p>
-                    </div>
-                  </div>
+                  {records.map((row) => {
+                    const total = row.goodCount + row.defectCount
+                    const rejectRate = total === 0 ? 0 : (row.defectCount / total) * 100
+                    const isAnomaly = rejectRate > 5
 
-                  <div className="rounded-lg border border-border p-4 text-black">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">ยอดงานดี</p>
-                        <p className="text-3xl font-bold text-success">
-                          {selectedApproval.goodCount.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">ยอดของเสีย</p>
-                        <p className="text-3xl font-bold text-danger">
-                          {selectedApproval.defectCount.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-3 border-t border-border pt-3 text-center">
-                      <p className="text-sm text-muted-foreground">อัตราของเสีย</p>
-                      <p className="text-xl font-bold">
+                    return (
+                      <TableRow key={row.id} className={isAnomaly ? "bg-orange-100/70" : ""}>
+                        <TableCell className="font-mono text-xs font-medium text-primary">{row.id}</TableCell>
+                        <TableCell className="font-mono text-xs">{row.orderId}</TableCell>
+                        <TableCell className="text-sm">{row.operator}</TableCell>
+                        <TableCell className="text-sm">{row.shift}</TableCell>
+                        <TableCell
+                          className="cursor-pointer text-right font-mono text-sm text-success underline decoration-dashed"
+                          onDoubleClick={() => openEditDialog(row.id, "goodCount", row.goodCount)}
+                          title="Double click เพื่อแก้ไข"
+                        >
+                          {row.goodCount.toLocaleString()}
+                        </TableCell>
+                        <TableCell
+                          className="cursor-pointer text-right font-mono text-sm text-danger underline decoration-dashed"
+                          onDoubleClick={() => openEditDialog(row.id, "defectCount", row.defectCount)}
+                          title="Double click เพื่อแก้ไข"
+                        >
+                          {row.defectCount.toLocaleString()}
+                        </TableCell>
+                        <TableCell className={`text-right text-sm font-semibold ${isAnomaly ? "text-orange-600" : "text-muted-foreground"}`}>
+                          {rejectRate.toFixed(1)}%
+                        </TableCell>
+                        <TableCell>
+                          {row.status === "pending" ? (
+                            <Badge className="bg-warning text-warning-foreground">รอตรวจสอบ</Badge>
+                          ) : (
+                            <Badge className="bg-success text-success-foreground">Approved 🟢</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            className="bg-success text-success-foreground hover:bg-success/90"
+                            onClick={() => requestApprove(row.id)}
+                            disabled={row.status === "approved"}
+                          >
+                            อนุมัติ
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                         {(
                           (selectedApproval.defectCount /
                             (selectedApproval.goodCount + selectedApproval.defectCount)) *
                           100
-                        ).toFixed(2)}
-                        %
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="rounded-lg bg-muted/30 p-2 text-black">
-                      <p className="text-xs text-muted-foreground">เวลาเริ่ม</p>
-                      <p className="font-mono">{selectedApproval.startTime}</p>
-                    </div>
-                    <div className="rounded-lg bg-muted/30 p-2">
-                      <p className="text-xs text-muted-foreground">เวลาจบ</p>
-                      <p className="font-mono">{selectedApproval.endTime}</p>
-                    </div>
-                  </div>
-
-                  {selectedApproval.status === "pending" && (
-                    <div className="flex gap-3 pt-2">
-                      <Button variant="outline" className="flex-1" onClick={handleEdit}>
-                        <Edit3 className="mr-2 h-4 w-4" />
-                        แก้ไขข้อมูล
-                      </Button>
-                      <Button
-                        className="flex-1 bg-success text-success-foreground hover:bg-success/90"
-                        onClick={handleApprove}
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        อนุมัติและส่งต่อ
-                      </Button>
-                    </div>
-                  )}
-
-                  {selectedApproval.status === "approved" && (
-                    <div className="rounded-lg bg-success/10 p-4 text-center">
-                      <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-success" />
-                      <p className="font-medium text-success">อนุมัติและส่งต่อบัญชีแล้ว</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex h-48 flex-col items-center justify-center text-muted-foreground">
-                  <FileCheck2 className="mb-3 h-12 w-12 opacity-50" />
-                  <p>เลือกรายการจากด้านซ้ายเพื่อดูรายละเอียด</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Audit Log */}
           <Card className="border-border text-black">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <History className="h-5 w-5 text-primary" />
-                ประวัติการดำเนินการ (Audit Log)
+                Audit Trail (ประวัติการแก้ไข)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="max-h-64 space-y-2 overflow-y-auto">
-                {auditLogs.map((log) => (
-                  <div key={log.id} className="flex gap-3 rounded-lg bg-muted/30 p-3 text-black">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20">
-                      {log.action === "อนุมัติ" ? (
-                        <CheckCircle2 className="h-4 w-4 text-success" />
-                      ) : log.action === "แก้ไขข้อมูล" ? (
-                        <Edit3 className="h-4 w-4 text-warning" />
-                      ) : (
-                        <Send className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {log.timestamp}
-                        </span>
-                        <Badge variant="outline" className="text-xs">
+              <Tabs defaultValue="audit" className="w-full">
+                <TabsList className="mb-3 w-full">
+                  <TabsTrigger value="audit" className="flex-1">Audit Trail</TabsTrigger>
+                  <TabsTrigger value="rules" className="flex-1">Validation Rules</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="audit" className="mt-0 space-y-2">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="rounded-lg border border-border bg-muted/20 p-3">
+                      <div className="flex items-center justify-between">
+                        <Badge
+                          className={
+                            log.action === "approve"
+                              ? "bg-success text-success-foreground"
+                              : log.action === "edit"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
+                          }
+                        >
                           {log.action}
                         </Badge>
+                        <span className="font-mono text-xs text-muted-foreground">{log.timestamp}</span>
                       </div>
-                      <p className="mt-1 text-sm">{log.details}</p>
-                      <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                        <User className="h-3 w-3" />
-                        {log.user}
-                      </div>
+                      <p className="mt-1 text-sm font-medium">{log.actor}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{log.details}</p>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </TabsContent>
+
+                <TabsContent value="rules" className="mt-0 space-y-2 text-sm">
+                  <div className="rounded-lg bg-warning/10 p-3 text-warning">ช่องที่ของเสียเกิน 5% จะถูกไฮไลต์สีส้มเพื่อเตือนหัวหน้ากะ</div>
+                  <div className="rounded-lg bg-muted/30 p-3">Double click ที่ยอดงานดี/ของเสียเพื่อแก้ไขตัวเลข</div>
+                  <div className="rounded-lg bg-muted/30 p-3">ทุกการแก้ไขบังคับกรอกเหตุผล และถูกบันทึกลง Audit Trail ทันที</div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
-        </div>
-      </div>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Edit3 className="h-5 w-5 text-warning" />
-              แก้ไขข้อมูล
-            </DialogTitle>
+
+        <Dialog open={Boolean(editDraft)} onOpenChange={(open) => !open && setEditDraft(null)}>
             <DialogDescription>
               การแก้ไขจะถูกบันทึกไว้ใน Audit Log
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
+              <DialogTitle className="flex items-center gap-2"><Edit3 className="h-5 w-5 text-primary" />แก้ไขตัวเลข</DialogTitle>
             <div className="rounded-lg bg-warning/10 p-3">
-              <div className="flex items-center gap-2 text-sm text-warning">
+                ระบุค่าที่ต้องการแก้และเหตุผลประกอบ (บังคับ) เพื่อบันทึกลง log
                 <AlertTriangle className="h-4 w-4" />
                 <span>การแก้ไขทุกครั้งจะถูกบันทึกเป็นหลักฐาน</span>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">ยอดงานดี</label>
+                <label className="text-sm font-medium">ค่าใหม่ ({editDraft?.field})</label>
                 <Input
                   type="number"
+                  value={editDraft?.nextValue ?? 0}
+                  onChange={(event) =>
+                    setEditDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            nextValue: Number(event.target.value || 0),
+                          }
+                        : prev
+                    )
+                  }
                   className="mt-1"
-                  value={editedGoodCount}
+                />
                   onChange={(e) => setEditedGoodCount(parseInt(e.target.value) || 0)}
                 />
                 {editedGoodCount !== selectedApproval?.goodCount && (
-                  <p className="mt-1 text-xs text-warning">
-                    เดิม: {selectedApproval?.goodCount}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="text-sm font-medium">ยอดของเสีย</label>
+                <label className="text-sm font-medium">เหตุผลการแก้ไข *</label>
+                <Input value={editReason} onChange={(event) => setEditReason(event.target.value)} className="mt-1" />
                 <Input
                   type="number"
                   className="mt-1"
                   value={editedDefectCount}
-                  onChange={(e) => setEditedDefectCount(parseInt(e.target.value) || 0)}
-                />
-                {editedDefectCount !== selectedApproval?.defectCount && (
-                  <p className="mt-1 text-xs text-warning">
-                    เดิม: {selectedApproval?.defectCount}
-                  </p>
-                )}
+              <Button variant="outline" onClick={() => setEditDraft(null)}>ยกเลิก</Button>
+              <Button onClick={confirmEdit} disabled={!editReason.trim()}>บันทึกพร้อมเหตุผล</Button>
               </div>
             </div>
           </div>
 
-          <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               ยกเลิก
             </Button>
-            <Button onClick={confirmEdit}>
-              <Edit3 className="mr-2 h-4 w-4" />
-              บันทึกการแก้ไข
-            </Button>
+              <DialogTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-success" />ยืนยันการอนุมัติ</DialogTitle>
           </DialogFooter>
-        </DialogContent>
+                ระบบจะเปลี่ยนสถานะเป็น Approved 🟢 และ Sync ข้อมูลชุดนี้ไป Costing
       </Dialog>
 
-      {/* Approve Dialog */}
-      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-              ยืนยันการอนุมัติ
-            </DialogTitle>
-            <DialogDescription>
-              ข้อมูลจะถูกส่งไปยังระบบบัญชีเพื่อตัดต้นทุนทันที
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="rounded-lg bg-muted/30 p-4">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">ใบสั่งผลิต:</span>
-                <span className="font-medium">{selectedApproval?.orderId}</span>
+            {selectedRowId && (
+              <div className="rounded-lg bg-muted/30 p-4 text-sm">
+                <p>รายการ: {selectedRowId}</p>
+                <p>ขั้นตอนถัดไป: Export/Sync ไปฐานข้อมูลบัญชี</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">งานดี:</span>
-                <span className="font-bold text-success">
-                  {selectedApproval?.goodCount.toLocaleString()}
+            )}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">ของเสีย:</span>
-                <span className="font-bold text-danger">
-                  {selectedApproval?.defectCount.toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Button variant="outline" onClick={() => setShowApproveDialog(false)}>ยกเลิก</Button>
+              <Button className="bg-success text-success-foreground hover:bg-success/90" onClick={confirmApprove}>
+                <FileCheck2 className="mr-2 h-4 w-4" />ยืนยันอนุมัติ
+              </Button>
             <User className="h-4 w-4" />
             <span>ลงชื่อโดย: วิชัย (หัวหน้ากะ)</span>
           </div>

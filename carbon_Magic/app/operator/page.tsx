@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -20,604 +21,362 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Play,
-  Square,
-  Plus,
-  Minus,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  Timer,
-} from "lucide-react"
+import { CheckCircle2, CircleAlert, Loader2, Play, Save, Square, Timer } from "lucide-react"
 
-interface ProductionSession {
-  orderId: string
-  productName: string
-  targetQuantity: number
-  goodCount: number
-  defectCount: number
-  startTime: string | null
-  endTime: string | null
-  status: "idle" | "running" | "paused" | "completed"
-}
+type ShiftStatus = "idle" | "running" | "completed"
+type QcStatus = "normal" | "pending"
+type SaveStatus = "idle" | "saving" | "saved"
 
-interface DefectLog {
+interface GridRow {
   id: string
-  count: number
-  reason: string
-  timestamp: string
+  machine: string
+  orderId: string
+  target: number
+  goodCount: number
+  qcStatus: QcStatus
 }
 
-const defectReasons = [
-  { value: "scratch", label: "รอยขีดข่วน" },
-  { value: "temperature", label: "อุณหภูมิไม่ได้" },
-  { value: "dimension", label: "ขนาดผิดพลาด" },
-  { value: "crack", label: "แตกร้าว" },
-  { value: "contamination", label: "มีสิ่งปนเปื้อน" },
-  { value: "color", label: "สีไม่ตรง" },
-  { value: "other", label: "อื่นๆ" },
+const initialRows: GridRow[] = [
+  { id: "R-1", machine: "Press P1", orderId: "PO-2026-110", target: 1800, goodCount: 640, qcStatus: "normal" },
+  { id: "R-2", machine: "Press P2", orderId: "PO-2026-111", target: 1600, goodCount: 520, qcStatus: "normal" },
+  { id: "R-3", machine: "Mixer M1", orderId: "PO-2026-112", target: 1400, goodCount: 430, qcStatus: "normal" },
 ]
 
-const availableOrders = [
-  { id: "PO-2024-010", productName: "Carbon Filter Type A", target: 5000 },
-  { id: "PO-2024-011", productName: "Carbon Block B200", target: 3000 },
-  { id: "PO-2024-012", productName: "Activated Carbon X", target: 2500 },
+const orderOptions = [
+  { id: "PO-2026-110", name: "Carbon Filter Type A" },
+  { id: "PO-2026-111", name: "Carbon Block B200" },
+  { id: "PO-2026-112", name: "Activated Carbon X" },
 ]
+
+function getOrderName(orderId: string) {
+  return orderOptions.find((item) => item.id === orderId)?.name ?? "-"
+}
+
+async function getServerTimestamp() {
+  // In production, replace with API that returns CURRENT_TIMESTAMP from server.
+  await new Promise((resolve) => setTimeout(resolve, 250))
+  return new Date().toISOString()
+}
+
+async function saveProductionRow(_row: GridRow) {
+  // In production, call API to persist row update.
+  await new Promise((resolve) => setTimeout(resolve, 300))
+}
 
 export default function OperatorPage() {
-  const [session, setSession] = useState<ProductionSession>({
-    orderId: "",
-    productName: "",
-    targetQuantity: 0,
-    goodCount: 0,
-    defectCount: 0,
-    startTime: null,
-    endTime: null,
-    status: "idle",
-  })
-  
-  const [defectLogs, setDefectLogs] = useState<DefectLog[]>([])
-  const [selectedReason, setSelectedReason] = useState<string>("")
-  const [showDefectDialog, setShowDefectDialog] = useState(false)
-  const [pendingDefectCount, setPendingDefectCount] = useState(1)
+  const [rows, setRows] = useState<GridRow[]>(initialRows)
+  const [selectedOrderId, setSelectedOrderId] = useState(orderOptions[0].id)
+  const [shiftStatus, setShiftStatus] = useState<ShiftStatus>("idle")
+  const [startTime, setStartTime] = useState<string | null>(null)
+  const [endTime, setEndTime] = useState<string | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [dirtyRows, setDirtyRows] = useState<string[]>([])
+  const [saveStateByRow, setSaveStateByRow] = useState<Record<string, SaveStatus>>({})
+  const [pendingQcRowId, setPendingQcRowId] = useState<string | null>(null)
   const [showEndDialog, setShowEndDialog] = useState(false)
-  const [elapsedTime, setElapsedTime] = useState(0)
+  const [isShiftActionLoading, setIsShiftActionLoading] = useState(false)
 
-  // Timer effect
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-    if (session.status === "running" && session.startTime) {
-      interval = setInterval(() => {
-        const start = new Date(session.startTime!).getTime()
-        const now = Date.now()
-        setElapsedTime(Math.floor((now - start) / 1000))
-      }, 1000)
-    }
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [session.status, session.startTime])
+    if (shiftStatus !== "running" || !startTime) return
 
-  const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - new Date(startTime).getTime()) / 1000))
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [shiftStatus, startTime])
+
+  useEffect(() => {
+    if (dirtyRows.length === 0) return
+
+    const debounceTimer = setTimeout(async () => {
+      const rowIdsToSave = [...new Set(dirtyRows)]
+      setDirtyRows([])
+
+      for (const rowId of rowIdsToSave) {
+        const row = rows.find((item) => item.id === rowId)
+        if (!row) continue
+
+        setSaveStateByRow((prev) => ({ ...prev, [rowId]: "saving" }))
+        await saveProductionRow(row)
+        setSaveStateByRow((prev) => ({ ...prev, [rowId]: "saved" }))
+
+        setTimeout(() => {
+          setSaveStateByRow((prev) => ({ ...prev, [rowId]: "idle" }))
+        }, 1200)
+      }
+    }, 700)
+
+    return () => clearTimeout(debounceTimer)
+  }, [dirtyRows, rows])
+
+  const totalGood = useMemo(() => rows.reduce((sum, row) => sum + row.goodCount, 0), [rows])
+  const totalTarget = useMemo(() => rows.reduce((sum, row) => sum + row.target, 0), [rows])
+  const progressPercent = totalTarget === 0 ? 0 : Math.round((totalGood / totalTarget) * 100)
+
+  const formatTimer = (seconds: number) => {
+    const hh = Math.floor(seconds / 3600)
+    const mm = Math.floor((seconds % 3600) / 60)
+    const ss = seconds % 60
+    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
   }
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+  const markDirty = (rowId: string) => {
+    setDirtyRows((prev) => [...prev, rowId])
   }
 
-  const handleSelectOrder = (orderId: string) => {
-    const order = availableOrders.find((o) => o.id === orderId)
-    if (order) {
-      setSession((prev) => ({
-        ...prev,
-        orderId: order.id,
-        productName: order.productName,
-        targetQuantity: order.target,
-      }))
-    }
+  const updateGoodCount = (rowId: string, nextValue: number) => {
+    setRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, goodCount: Math.max(0, nextValue) } : row)))
+    markDirty(rowId)
   }
 
-  const handleStart = () => {
-    const now = new Date()
-    setSession((prev) => ({
-      ...prev,
-      startTime: now.toISOString(),
-      status: "running",
-    }))
+  const incrementGood = (rowId: string, amount: number) => {
+    const row = rows.find((item) => item.id === rowId)
+    if (!row) return
+    updateGoodCount(rowId, row.goodCount + amount)
   }
 
-  const handleAddGood = useCallback((amount: number) => {
-    if (session.status !== "running") return
-    setSession((prev) => ({
-      ...prev,
-      goodCount: prev.goodCount + amount,
-    }))
-  }, [session.status])
-
-  const handleAddDefect = () => {
-    setShowDefectDialog(true)
-    setPendingDefectCount(1)
-    setSelectedReason("")
+  const callQc = (rowId: string) => {
+    setRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, qcStatus: "pending" } : row)))
+    markDirty(rowId)
+    setPendingQcRowId(rowId)
   }
 
-  const confirmDefect = () => {
-    if (!selectedReason) return
-    
-    const log: DefectLog = {
-      id: Date.now().toString(),
-      count: pendingDefectCount,
-      reason: defectReasons.find((r) => r.value === selectedReason)?.label || selectedReason,
-      timestamp: formatTimestamp(new Date()),
-    }
-    
-    setDefectLogs((prev) => [...prev, log])
-    setSession((prev) => ({
-      ...prev,
-      defectCount: prev.defectCount + pendingDefectCount,
-    }))
-    setShowDefectDialog(false)
+  const handleStartShift = async () => {
+    setIsShiftActionLoading(true)
+    const timestamp = await getServerTimestamp()
+    setStartTime(timestamp)
+    setEndTime(null)
+    setShiftStatus("running")
+    setElapsedSeconds(0)
+    setRows((prev) => prev.map((row) => ({ ...row, orderId: selectedOrderId })))
+    setIsShiftActionLoading(false)
   }
 
-  const handleEnd = () => {
-    setShowEndDialog(true)
-  }
-
-  const confirmEnd = () => {
-    const now = new Date()
-    setSession((prev) => ({
-      ...prev,
-      endTime: now.toISOString(),
-      status: "completed",
-    }))
+  const confirmEndShift = async () => {
+    setIsShiftActionLoading(true)
+    const timestamp = await getServerTimestamp()
+    setEndTime(timestamp)
+    setShiftStatus("completed")
     setShowEndDialog(false)
+    setIsShiftActionLoading(false)
   }
-
-  const progress = session.targetQuantity > 0 
-    ? Math.round(((session.goodCount + session.defectCount) / session.targetQuantity) * 100)
-    : 0
-
-  const defectRate = (session.goodCount + session.defectCount) > 0
-    ? ((session.defectCount / (session.goodCount + session.defectCount)) * 100).toFixed(1)
-    : "0.0"
 
   return (
     <DashboardShell>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">บันทึกผลผลิตหน้าเครื่อง</h1>
+        <h1 className="text-2xl font-bold text-foreground">Operator Fast-Entry</h1>
         <p className="text-sm text-muted-foreground">
-          ระบบบันทึกผลการผลิตแบบ Real-time สำหรับพนักงานหน้าเครื่องจักร
+          กรอกผลผลิตแบบตารางคล้าย Excel รองรับทัชสกรีน, ปุ่มลูกศร, Tab และบันทึกอัตโนมัติ
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3 ">
-        {/* Main Production Panel */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Order Selection & Status */}
-          <Card className="border-border text-black">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">ใบสั่งผลิตที่กำลังทำงาน</CardTitle>
-                <Badge 
-                  className={
-                    session.status === "running" 
-                      ? "bg-success text-success-foreground" 
-                      : session.status === "completed"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }
-                >
-                  {session.status === "idle" && "รอเริ่มงาน"}
-                  {session.status === "running" && "กำลังทำงาน"}
-                  {session.status === "completed" && "เสร็จสิ้น"}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <Select
-                  value={session.orderId}
-                  onValueChange={handleSelectOrder}
-                  disabled={session.status !== "idle"}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="เลือกใบสั่งผลิต" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableOrders.map((order) => (
-                      <SelectItem key={order.id} value={order.id}>
-                        {order.id} - {order.productName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {session.status === "idle" && session.orderId && (
-                  <Button
-                    size="lg"
-                    className="bg-success text-success-foreground hover:bg-success/90 px-8"
-                    onClick={handleStart}
-                  >
-                    <Play className="mr-2 h-5 w-5" />
-                    Start
-                  </Button>
-                )}
-              </div>
-
-              {session.orderId && (
-                <div className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-muted/30 p-4 ">
-                  <div>
-                    <p className="text-xs  text-muted-foreground">สินค้า</p>
-                    <p className="font-medium">{session.productName}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">เป้าหมาย</p>
-                    <p className="font-medium">{session.targetQuantity.toLocaleString()} ชิ้น</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">เวลาเริ่มต้น</p>
-                    <p className="font-medium font-mono">
-                      {session.startTime 
-                        ? new Date(session.startTime).toLocaleTimeString("th-TH")
-                        : "-"
-                      }
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Production Counter - Excel-like Grid */}
-          <Card className="border-border text-black">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">บันทึกผลงาน</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-hidden rounded-lg border border-border">
-                {/* Header Row */}
-                <div className="grid grid-cols-4 bg-muted/50">
-                  <div className="border-b border-r border-border p-3 text-center text-sm font-medium">
-                    รายการ
-                  </div>
-                  <div className="border-b border-r border-border p-3 text-center text-sm font-medium">
-                    จำนวน
-                  </div>
-                  <div className="border-b border-r border-border p-3 text-center text-sm font-medium">
-                    เพิ่ม
-                  </div>
-                  <div className="border-b border-border p-3 text-center text-sm font-medium">
-                    ลด
-                  </div>
-                </div>
-
-                {/* Good Items Row */}
-                <div className="grid grid-cols-4">
-                  <div className="flex items-center gap-2 border-b border-r border-border bg-success/10 p-3">
-                    <CheckCircle2 className="h-5 w-5 text-success" />
-                    <span className="font-medium">งานดี</span>
-                  </div>
-                  <div className="flex items-center justify-center border-b border-r border-border p-3">
-                    <span className="font-mono text-2xl font-bold text-success">
-                      {session.goodCount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 border-b border-r border-border p-3">
-                    <Button
-                      size="lg"
-                      className="h-14 w-20 bg-success text-success-foreground text-lg font-bold hover:bg-success/90"
-                      onClick={() => handleAddGood(1)}
-                      disabled={session.status !== "running"}
-                    >
-                      <Plus className="mr-1 h-5 w-5" />1
-                    </Button>
-                    <Button
-                      size="lg"
-                      className="h-14 w-20 bg-success text-success-foreground text-lg font-bold hover:bg-success/90"
-                      onClick={() => handleAddGood(10)}
-                      disabled={session.status !== "running"}
-                    >
-                      <Plus className="mr-1 h-5 w-5" />10
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-center border-b border-border p-3">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="h-14 w-20"
-                      onClick={() => setSession((prev) => ({ ...prev, goodCount: Math.max(0, prev.goodCount - 1) }))}
-                      disabled={session.status !== "running" || session.goodCount === 0}
-                    >
-                      <Minus className="mr-1 h-5 w-5" />1
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Defect Items Row */}
-                <div className="grid grid-cols-4">
-                  <div className="flex items-center gap-2 border-r border-border bg-danger/10 p-3">
-                    <XCircle className="h-5 w-5 text-danger" />
-                    <span className="font-medium">ของเสีย</span>
-                  </div>
-                  <div className="flex items-center justify-center border-r border-border p-3">
-                    <span className="font-mono text-2xl font-bold text-danger">
-                      {session.defectCount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 border-r border-border p-3">
-                    <Button
-                      size="lg"
-                      className="h-14 w-28 bg-danger text-danger-foreground text-lg font-bold hover:bg-danger/90"
-                      onClick={handleAddDefect}
-                      disabled={session.status !== "running"}
-                    >
-                      <Plus className="mr-1 h-5 w-5" />ของเสีย
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-center p-3">
-                    <span className="text-sm text-muted-foreground">
-                      อัตรา: {defectRate}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">ความคืบหน้า</span>
-                  <span className="font-medium">{progress}%</span>
-                </div>
-                <div className="mt-2 h-3 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-primary transition-all duration-300"
-                    style={{ width: `${Math.min(progress, 100)}%` }}
-                  />
-                </div>
-                <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-                  <span>{(session.goodCount + session.defectCount).toLocaleString()} ชิ้น</span>
-                  <span>เป้า {session.targetQuantity.toLocaleString()} ชิ้น</span>
-                </div>
-              </div>
-
-              {/* End Session Button */}
-              {session.status === "running" && (
-                <Button
-                  size="lg"
-                  className="mt-6 w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={handleEnd}
-                >
-                  <Square className="mr-2 h-5 w-5" />
-                  จบการทำงาน
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Panel - Timer & Logs */}
-        <div className="space-y-4">
-          {/* Timer Card */}
-          <Card className="border-border text-black">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Timer className="h-5 w-5 text-primary" />
-                เวลาทำงาน
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center">
-                <p className="font-mono text-4xl font-bold text-foreground">
-                  {formatTime(elapsedTime)}
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground ">
-                  {session.status === "running" ? "กำลังนับเวลา..." : "หยุดนับเวลา"}
-                </p>
-              </div>
-
-              {session.endTime && (
-                <div className="mt-4 rounded-lg bg-muted/30 p-3">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground">เวลาเริ่ม</p>
-                      <p className="font-mono font-medium">
-                        {session.startTime && new Date(session.startTime).toLocaleTimeString("th-TH")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">เวลาจบ</p>
-                      <p className="font-mono font-medium">
-                        {new Date(session.endTime).toLocaleTimeString("th-TH")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Defect Logs */}
-          <Card className="border-border text-black">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-5 w-5 text-danger" />
-                บันทึกของเสีย
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {defectLogs.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  <XCircle className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                  <p className="text-sm">ยังไม่มีบันทึกของเสีย</p>
-                </div>
-              ) : (
-                <div className="max-h-64 space-y-2 overflow-y-auto">
-                  {defectLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="flex items-center justify-between rounded-lg bg-danger/10 px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{log.reason}</p>
-                        <p className="text-xs text-muted-foreground">{log.timestamp}</p>
-                      </div>
-                      <Badge className="bg-danger text-danger-foreground">
-                        {log.count} ชิ้น
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Summary Card */}
-          {session.status === "completed" && (
-            <Card className="border-success bg-success/10 text-black">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base text-success">
-                  <CheckCircle2 className="h-5 w-5" />
-                  สรุปผลการทำงาน
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">งานดี:</span>
-                    <span className="font-bold text-success">{session.goodCount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ของเสีย:</span>
-                    <span className="font-bold text-danger">{session.defectCount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">อัตราของเสีย:</span>
-                    <span className="font-bold">{defectRate}%</span>
-                  </div>
-                  <div className="border-t border-border pt-2">
-                    <p className="text-xs text-muted-foreground">
-                      ข้อมูลถูกส่งไปยังหน้าตรวจสอบและอนุมัติแล้ว
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Defect Reason Dialog */}
-      <Dialog open={showDefectDialog} onOpenChange={setShowDefectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-danger" />
-              บันทึกของเสีย
-            </DialogTitle>
-            <DialogDescription>
-              กรุณาระบุจำนวนและสาเหตุของเสีย
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">จำนวนของเสีย</label>
-              <div className="mt-2 flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setPendingDefectCount(Math.max(1, pendingDefectCount - 1))}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="w-16 text-center font-mono text-2xl font-bold">
-                  {pendingDefectCount}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setPendingDefectCount(pendingDefectCount + 1)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">สาเหตุของเสีย *</label>
-              <Select value={selectedReason} onValueChange={setSelectedReason}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="เลือกสาเหตุ" />
+      <div className="mb-4 grid gap-4 lg:grid-cols-4">
+        <Card className="border-border text-black lg:col-span-3">
+          <CardContent className="flex flex-col gap-3 pt-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+              <Select value={selectedOrderId} onValueChange={setSelectedOrderId} disabled={shiftStatus !== "idle"}>
+                <SelectTrigger className="min-w-[280px]">
+                  <SelectValue placeholder="เลือกใบสั่งผลิต" />
                 </SelectTrigger>
                 <SelectContent>
-                  {defectReasons.map((reason) => (
-                    <SelectItem key={reason.value} value={reason.value}>
-                      {reason.label}
+                  {orderOptions.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.id} - {item.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
+              <Badge className={shiftStatus === "running" ? "bg-success text-success-foreground" : shiftStatus === "completed" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}>
+                {shiftStatus === "idle" && "ยังไม่เริ่มกะ"}
+                {shiftStatus === "running" && "กำลังเดินกะ"}
+                {shiftStatus === "completed" && "ปิดกะแล้ว"}
+              </Badge>
             </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                className="bg-success text-success-foreground hover:bg-success/90"
+                disabled={shiftStatus !== "idle" || isShiftActionLoading}
+                onClick={handleStartShift}
+              >
+                {isShiftActionLoading && shiftStatus === "idle" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                ▶️ เริ่มกะ
+              </Button>
+              <Button
+                variant="outline"
+                disabled={shiftStatus !== "running" || isShiftActionLoading}
+                onClick={() => setShowEndDialog(true)}
+              >
+                <Square className="mr-2 h-4 w-4" />
+                ⏹️ จบกะ
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border text-black">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Timer className="h-4 w-4 text-primary" />
+              เวลาทำงาน
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-mono text-2xl font-bold">{formatTimer(elapsedSeconds)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {startTime ? `เริ่ม: ${new Date(startTime).toLocaleTimeString("th-TH")}` : "ยังไม่เริ่มกะ"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-border text-black">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Production Data Grid</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  <th className="p-3 text-left">เครื่อง</th>
+                  <th className="p-3 text-left">PO</th>
+                  <th className="p-3 text-right">เป้า</th>
+                  <th className="p-3 text-right">งานดี</th>
+                  <th className="p-3 text-center">เพิ่มเร็ว</th>
+                  <th className="p-3 text-center">QC</th>
+                  <th className="p-3 text-center">Auto-Save</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const rowSaveState = saveStateByRow[row.id] ?? "idle"
+                  return (
+                    <tr key={row.id} className="border-b last:border-b-0 hover:bg-muted/20">
+                      <td className="p-2 font-medium">{row.machine}</td>
+                      <td className="p-2 font-mono text-xs">{row.orderId}</td>
+                      <td className="p-2 text-right">{row.target.toLocaleString()}</td>
+                      <td className="p-2 text-right">
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          className="h-12 text-right text-lg"
+                          value={row.goodCount}
+                          disabled={shiftStatus !== "running"}
+                          onChange={(event) => updateGoodCount(row.id, Number(event.target.value || 0))}
+                          onBlur={() => markDirty(row.id)}
+                        />
+                      </td>
+                      <td className="p-2">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            size="lg"
+                            className="h-12 min-w-20 bg-success text-success-foreground hover:bg-success/90"
+                            disabled={shiftStatus !== "running"}
+                            onClick={() => incrementGood(row.id, 10)}
+                          >
+                            +10
+                          </Button>
+                          <Button
+                            size="lg"
+                            className="h-12 min-w-20 bg-success text-success-foreground hover:bg-success/90"
+                            disabled={shiftStatus !== "running"}
+                            onClick={() => incrementGood(row.id, 50)}
+                          >
+                            +50
+                          </Button>
+                        </div>
+                      </td>
+                      <td className="p-2 text-center">
+                        {row.qcStatus === "pending" ? (
+                          <Badge className="bg-warning text-warning-foreground">🟡 รอ QC ตรวจ</Badge>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="h-12"
+                            disabled={shiftStatus !== "running"}
+                            onClick={() => callQc(row.id)}
+                          >
+                            เรียก QC
+                          </Button>
+                        )}
+                      </td>
+                      <td className="p-2 text-center">
+                        {rowSaveState === "saving" && (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            saving...
+                          </span>
+                        )}
+                        {rowSaveState === "saved" && (
+                          <span className="inline-flex items-center gap-1 text-xs text-success">
+                            <Save className="h-3.5 w-3.5" />
+                            saved
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
 
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">ใบสั่งผลิต</p>
+              <p className="text-sm font-medium">{selectedOrderId} - {getOrderName(selectedOrderId)}</p>
+            </div>
+            <div className="rounded-lg bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">ยอดงานดีรวม</p>
+              <p className="text-sm font-medium text-success">{totalGood.toLocaleString()} ชิ้น</p>
+            </div>
+            <div className="rounded-lg bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">ความคืบหน้า</p>
+              <p className="text-sm font-medium">{progressPercent}%</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ยืนยันจบกะ</DialogTitle>
+            <DialogDescription>
+              ระบบจะเรียกเวลาจากเซิร์ฟเวอร์และล็อกข้อมูลกะนี้เพื่อส่งต่อหัวหน้ากะ
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 rounded-lg bg-muted/30 p-4 text-sm">
+            <p>PO: {selectedOrderId}</p>
+            <p>เวลาทำงาน: {formatTimer(elapsedSeconds)}</p>
+            <p>งานดีรวม: {totalGood.toLocaleString()} ชิ้น</p>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDefectDialog(false)}>
+            <Button variant="outline" onClick={() => setShowEndDialog(false)}>
               ยกเลิก
             </Button>
-            <Button
-              className="bg-danger text-danger-foreground hover:bg-danger/90"
-              onClick={confirmDefect}
-              disabled={!selectedReason}
-            >
-              บันทึกของเสีย
+            <Button onClick={confirmEndShift} disabled={isShiftActionLoading}>
+              {isShiftActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              ยืนยันจบกะ
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* End Session Dialog */}
-      <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+      <Dialog open={Boolean(pendingQcRowId)} onOpenChange={(open) => !open && setPendingQcRowId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ยืนยันจบการทำงาน</DialogTitle>
-            <DialogDescription>
-              ระบบจะบันทึกเวลาสิ้นสุดและส่งข้อมูลไปยังหัวหน้ากะเพื่อตรวจสอบ
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <CircleAlert className="h-5 w-5 text-warning" />
+              แจ้ง QC แล้ว
+            </DialogTitle>
+            <DialogDescription>แถวนี้ถูกเปลี่ยนสถานะเป็น "รอ QC ตรวจ" และรอการตัดสินของเสียจากฝั่ง QC</DialogDescription>
           </DialogHeader>
-          
-          <div className="rounded-lg bg-muted/30 p-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-muted-foreground">ใบสั่งผลิต</p>
-                <p className="font-medium">{session.orderId}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">เวลาทำงาน</p>
-                <p className="font-mono font-medium">{formatTime(elapsedTime)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">งานดี</p>
-                <p className="font-bold text-success">{session.goodCount.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">ของเสีย</p>
-                <p className="font-bold text-danger">{session.defectCount.toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEndDialog(false)}>
-              ยกเลิก
-            </Button>
-            <Button onClick={confirmEnd}>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              ยืนยันจบการทำงาน
-            </Button>
+            <Button onClick={() => setPendingQcRowId(null)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

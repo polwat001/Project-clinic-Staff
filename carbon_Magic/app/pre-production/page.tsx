@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -21,96 +21,106 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { 
-  AlertTriangle, 
-  CheckCircle2, 
-  Package, 
-  Play, 
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Factory,
+  Loader2,
+  Package,
+  Play,
   ShoppingCart,
-  ArrowLeft,
-  Loader2
 } from "lucide-react"
+
+type Priority = "high" | "medium" | "low"
+
+interface BOMFormulaItem {
+  materialCode: string
+  materialName: string
+  unit: string
+  perUnit: number
+}
 
 interface ProductionOrder {
   id: string
   productName: string
   quantity: number
   dueDate: string
-  priority: "high" | "medium" | "low"
+  priority: Priority
   customer: string
+  bomFormula: BOMFormulaItem[]
 }
 
-interface BOMItem {
-  id: string
+interface InventoryItem {
+  materialCode: string
+  onHand: number
+}
+
+interface MaterialCheckRow {
+  materialCode: string
   materialName: string
-  required: number
   unit: string
-  inStock: number
+  perUnit: number
+  required: number
+  onHand: number
   shortage: number
 }
 
 const productionOrders: ProductionOrder[] = [
   {
-    id: "PO-2024-010",
+    id: "PO-2026-110",
     productName: "Carbon Filter Type A",
     quantity: 5000,
-    dueDate: "28/03/2026",
+    dueDate: "2026-03-29 16:00",
     priority: "high",
     customer: "ABC Corporation",
+    bomFormula: [
+      { materialCode: "MAT-CARBON-P", materialName: "Activated Carbon Powder", unit: "kg", perUnit: 0.5 },
+      { materialCode: "MAT-RESIN-01", materialName: "Binding Resin", unit: "kg", perUnit: 0.08 },
+      { materialCode: "MAT-MESH-100", materialName: "Filter Mesh 100", unit: "pcs", perUnit: 1 },
+    ],
   },
   {
-    id: "PO-2024-011",
+    id: "PO-2026-111",
     productName: "Carbon Block B200",
     quantity: 3000,
-    dueDate: "30/03/2026",
+    dueDate: "2026-03-30 14:00",
     priority: "medium",
     customer: "XYZ Industries",
+    bomFormula: [
+      { materialCode: "MAT-BLOCK-RAW", materialName: "Carbon Block Raw", unit: "kg", perUnit: 0.4 },
+      { materialCode: "MAT-BINDER-02", materialName: "Block Binder", unit: "kg", perUnit: 0.12 },
+      { materialCode: "MAT-SHRINK-W", materialName: "Heat Shrink Wrap", unit: "m", perUnit: 1.2 },
+    ],
   },
   {
-    id: "PO-2024-012",
+    id: "PO-2026-112",
     productName: "Activated Carbon X",
     quantity: 2500,
-    dueDate: "01/04/2026",
-    priority: "low",
-    customer: "Delta Corp",
-  },
-  {
-    id: "PO-2024-013",
-    productName: "Filter Media C100",
-    quantity: 8000,
-    dueDate: "02/04/2026",
+    dueDate: "2026-03-31 20:00",
     priority: "high",
-    customer: "Tech Solutions",
+    customer: "Delta Corp",
+    bomFormula: [
+      { materialCode: "MAT-ACT-CARB", materialName: "Raw Activated Carbon", unit: "kg", perUnit: 0.65 },
+      { materialCode: "MAT-ACT-CHEM", materialName: "Chemical Activator", unit: "L", perUnit: 0.02 },
+      { materialCode: "MAT-BAG-25", materialName: "Packaging Bags 25kg", unit: "pcs", perUnit: 0.04 },
+    ],
   },
 ]
 
-// Mock BOM data for different orders
-const bomData: Record<string, BOMItem[]> = {
-  "PO-2024-010": [
-    { id: "1", materialName: "Activated Carbon Powder", required: 250, unit: "kg", inStock: 300, shortage: 0 },
-    { id: "2", materialName: "Binding Resin", required: 50, unit: "kg", inStock: 45, shortage: 5 },
-    { id: "3", materialName: "Filter Mesh 100", required: 5000, unit: "pcs", inStock: 6000, shortage: 0 },
-    { id: "4", materialName: "End Caps Type A", required: 10000, unit: "pcs", inStock: 12000, shortage: 0 },
-    { id: "5", materialName: "O-Ring Seal", required: 5000, unit: "pcs", inStock: 4500, shortage: 500 },
-  ],
-  "PO-2024-011": [
-    { id: "1", materialName: "Carbon Block Raw", required: 150, unit: "kg", inStock: 200, shortage: 0 },
-    { id: "2", materialName: "Compression Mold B", required: 30, unit: "sets", inStock: 35, shortage: 0 },
-    { id: "3", materialName: "Heat Shrink Wrap", required: 3000, unit: "m", inStock: 4000, shortage: 0 },
-  ],
-  "PO-2024-012": [
-    { id: "1", materialName: "Raw Activated Carbon", required: 500, unit: "kg", inStock: 480, shortage: 20 },
-    { id: "2", materialName: "Chemical Activator", required: 25, unit: "L", inStock: 30, shortage: 0 },
-    { id: "3", materialName: "Packaging Bags 25kg", required: 100, unit: "pcs", inStock: 100, shortage: 0 },
-  ],
-  "PO-2024-013": [
-    { id: "1", materialName: "Filter Media Granules", required: 800, unit: "kg", inStock: 900, shortage: 0 },
-    { id: "2", materialName: "Container C100", required: 8000, unit: "pcs", inStock: 8500, shortage: 0 },
-    { id: "3", materialName: "Label Sticker", required: 8000, unit: "pcs", inStock: 10000, shortage: 0 },
-  ],
-}
+// Simulate inventory query from Oracle.
+const inventoryOnHand: InventoryItem[] = [
+  { materialCode: "MAT-CARBON-P", onHand: 2300 },
+  { materialCode: "MAT-RESIN-01", onHand: 450 },
+  { materialCode: "MAT-MESH-100", onHand: 10000 },
+  { materialCode: "MAT-BLOCK-RAW", onHand: 1500 },
+  { materialCode: "MAT-BINDER-02", onHand: 500 },
+  { materialCode: "MAT-SHRINK-W", onHand: 5000 },
+  { materialCode: "MAT-ACT-CARB", onHand: 1450 },
+  { materialCode: "MAT-ACT-CHEM", onHand: 70 },
+  { materialCode: "MAT-BAG-25", onHand: 80 },
+]
 
-function PriorityBadge({ priority }: { priority: "high" | "medium" | "low" }) {
+function PriorityBadge({ priority }: { priority: Priority }) {
   const config = {
     high: { label: "เร่งด่วน", className: "bg-danger text-danger-foreground" },
     medium: { label: "ปกติ", className: "bg-warning text-warning-foreground" },
@@ -119,62 +129,74 @@ function PriorityBadge({ priority }: { priority: "high" | "medium" | "low" }) {
   return <Badge className={config[priority].className}>{config[priority].label}</Badge>
 }
 
+function getInventory(materialCode: string) {
+  return inventoryOnHand.find((item) => item.materialCode === materialCode)?.onHand ?? 0
+}
+
 export default function PreProductionPage() {
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showStartDialog, setShowStartDialog] = useState(false)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
+  const [showPurchaseSentDialog, setShowPurchaseSentDialog] = useState(false)
 
-  const currentBOM = selectedOrder ? bomData[selectedOrder.id] || [] : []
-  const hasShortage = currentBOM.some((item) => item.shortage > 0)
-  const shortageItems = currentBOM.filter((item) => item.shortage > 0)
+  const materialRows: MaterialCheckRow[] = useMemo(() => {
+    if (!selectedOrder) return []
+
+    return selectedOrder.bomFormula.map((formula) => {
+      const required = formula.perUnit * selectedOrder.quantity
+      const onHand = getInventory(formula.materialCode)
+      return {
+        materialCode: formula.materialCode,
+        materialName: formula.materialName,
+        unit: formula.unit,
+        perUnit: formula.perUnit,
+        required,
+        onHand,
+        shortage: Math.max(0, required - onHand),
+      }
+    })
+  }, [selectedOrder])
+
+  const totalShortage = materialRows.reduce((sum, row) => sum + row.shortage, 0)
+  const hasShortage = totalShortage > 0
+  const shortageRows = materialRows.filter((row) => row.shortage > 0)
 
   const handleSelectOrder = (order: ProductionOrder) => {
     setIsLoading(true)
-    // Simulate API call to check stock
     setTimeout(() => {
       setSelectedOrder(order)
       setIsLoading(false)
-    }, 800)
-  }
-
-  const handleStartProduction = () => {
-    setShowConfirmDialog(true)
+    }, 700)
   }
 
   const handleConfirmStart = () => {
-    // In real app, this would trigger production start
-    setShowConfirmDialog(false)
+    setShowStartDialog(false)
     setSelectedOrder(null)
-  }
-
-  const handleNotifyPurchase = () => {
-    setShowPurchaseDialog(true)
   }
 
   return (
     <DashboardShell>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">เตรียมการผลิตและตรวจสอบวัตถุดิบ</h1>
+        <h1 className="text-2xl font-bold text-foreground">Smart BOM Predictor</h1>
         <p className="text-sm text-muted-foreground">
-          ตรวจสอบความพร้อมของวัตถุดิบก่อนเริ่มการผลิต
+          ประเมินวัตถุดิบก่อนสั่งการผลิต ป้องกันงานหยุดกลางทางจากของขาด
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Panel - Production Orders List */}
-        <Card className="border-border text-black" >
+        <Card className="border-border text-black">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Package className="h-5 w-5 text-primary" />
-              ใบสั่งผลิตที่รอเริ่มงาน
+              รายการใบสั่งผลิต (PO) ที่รอคิว
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs">เลขที่ PO</TableHead>
+                  <TableHead className="text-xs">PO</TableHead>
                   <TableHead className="text-xs">สินค้า</TableHead>
                   <TableHead className="text-xs text-right">จำนวน</TableHead>
                   <TableHead className="text-xs">กำหนดส่ง</TableHead>
@@ -190,16 +212,10 @@ export default function PreProductionPage() {
                     }`}
                     onClick={() => handleSelectOrder(order)}
                   >
-                    <TableCell className="font-mono text-xs font-medium text-primary ">
-                      {order.id}
-                    </TableCell>
+                    <TableCell className="font-mono text-xs font-medium text-primary">{order.id}</TableCell>
                     <TableCell className="text-sm">{order.productName}</TableCell>
-                    <TableCell className="text-right text-sm">
-                      {order.quantity.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {order.dueDate}
-                    </TableCell>
+                    <TableCell className="text-right text-sm">{order.quantity.toLocaleString()}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{order.dueDate}</TableCell>
                     <TableCell>
                       <PriorityBadge priority={order.priority} />
                     </TableCell>
@@ -210,112 +226,83 @@ export default function PreProductionPage() {
           </CardContent>
         </Card>
 
-        {/* Right Panel - BOM Check */}
         <Card className="border-border text-black">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">
-                {selectedOrder ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => setSelectedOrder(null)}
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <span>BOM: {selectedOrder.id}</span>
-                  </div>
-                ) : (
-                  "ตาราง BOM (Bill of Materials)"
-                )}
-              </CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base">ตารางคำนวณสูตร BOM เทียบสต็อกคงเหลือ</CardTitle>
               {selectedOrder && (
-                <div className="flex items-center gap-2">
-                  {hasShortage ? (
-                    <Badge className="bg-danger text-danger-foreground">
-                      <AlertTriangle className="mr-1 h-3 w-3" />
-                      วัตถุดิบไม่เพียงพอ
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-success text-success-foreground">
-                      <CheckCircle2 className="mr-1 h-3 w-3" />
-                      พร้อมผลิต
-                    </Badge>
-                  )}
-                </div>
+                <Badge className={hasShortage ? "bg-danger text-danger-foreground" : "bg-success text-success-foreground"}>
+                  {hasShortage ? "🔴 วัตถุดิบไม่พอ" : "🟢 พร้อมผลิต"}
+                </Badge>
               )}
             </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex h-64 items-center justify-center">
+              <div className="flex h-72 items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">กำลังตรวจสอบสต็อก...</span>
+                <span className="ml-2 text-muted-foreground">กำลังคูณสูตร BOM และเช็ค Inventory...</span>
               </div>
-            ) : selectedOrder ? (
+            ) : !selectedOrder ? (
+              <div className="flex h-72 flex-col items-center justify-center text-muted-foreground">
+                <Factory className="mb-3 h-12 w-12 opacity-50" />
+                <p className="text-center">เลือก PO จากฝั่งซ้ายเพื่อเริ่มการประเมิน</p>
+              </div>
+            ) : (
               <div className="space-y-4">
-                {/* Order Info */}
-                <div className="rounded-lg bg-muted/30 p-3">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">สินค้า:</span>{" "}
-                      <span className="font-medium">{selectedOrder.productName}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">ลูกค้า:</span>{" "}
-                      <span className="font-medium">{selectedOrder.customer}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">จำนวน:</span>{" "}
+                <div className="rounded-lg bg-muted/30 p-3 text-sm">
+                  <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
+                    <p>
+                      <span className="text-muted-foreground">PO:</span> <span className="font-medium">{selectedOrder.id}</span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">สินค้า:</span> <span className="font-medium">{selectedOrder.productName}</span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">จำนวนผลิต:</span>{" "}
                       <span className="font-medium">{selectedOrder.quantity.toLocaleString()} ชิ้น</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">กำหนดส่ง:</span>{" "}
-                      <span className="font-medium">{selectedOrder.dueDate}</span>
-                    </div>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">ลูกค้า:</span> <span className="font-medium">{selectedOrder.customer}</span>
+                    </p>
                   </div>
                 </div>
 
-                {/* BOM Table */}
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="text-xs">วัตถุดิบ</TableHead>
-                      <TableHead className="text-xs text-right">ต้องการ</TableHead>
-                      <TableHead className="text-xs text-right">ในสต็อก</TableHead>
+                      <TableHead className="text-xs text-right">สูตร/ชิ้น</TableHead>
+                      <TableHead className="text-xs text-right">ต้องใช้รวม</TableHead>
+                      <TableHead className="text-xs text-right">คงเหลือ</TableHead>
                       <TableHead className="text-xs text-right">ขาด</TableHead>
                       <TableHead className="text-xs">สถานะ</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {currentBOM.map((item) => (
-                      <TableRow
-                        key={item.id}
-                        className={item.shortage > 0 ? "bg-danger/10" : ""}
-                      >
-                        <TableCell className="text-sm font-medium">
-                          {item.materialName}
+                    {materialRows.map((row) => (
+                      <TableRow key={row.materialCode} className={row.shortage > 0 ? "bg-danger/10" : ""}>
+                        <TableCell>
+                          <p className="text-sm font-medium">{row.materialName}</p>
+                          <p className="text-xs text-muted-foreground">{row.materialCode}</p>
                         </TableCell>
-                        <TableCell className="text-right text-sm">
-                          {item.required.toLocaleString()} {item.unit}
-                        </TableCell>
-                        <TableCell className="text-right text-sm">
-                          {item.inStock.toLocaleString()} {item.unit}
-                        </TableCell>
-                        <TableCell
-                          className={`text-right text-sm font-bold ${
-                            item.shortage > 0 ? "text-danger" : "text-muted-foreground"
-                          }`}
-                        >
-                          {item.shortage > 0 ? `-${item.shortage.toLocaleString()} ${item.unit}` : "-"}
+                        <TableCell className="text-right text-sm">{row.perUnit.toLocaleString()} {row.unit}</TableCell>
+                        <TableCell className="text-right text-sm">{row.required.toLocaleString()} {row.unit}</TableCell>
+                        <TableCell className="text-right text-sm">{row.onHand.toLocaleString()} {row.unit}</TableCell>
+                        <TableCell className={`text-right text-sm font-semibold ${row.shortage > 0 ? "text-danger" : "text-success"}`}>
+                          {row.shortage > 0 ? `${row.shortage.toLocaleString()} ${row.unit}` : "0"}
                         </TableCell>
                         <TableCell>
-                          {item.shortage > 0 ? (
-                            <AlertTriangle className="h-4 w-4 text-danger" />
+                          {row.shortage > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-danger">
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                              🔴 ขาด
+                            </span>
                           ) : (
-                            <CheckCircle2 className="h-4 w-4 text-success" />
+                            <span className="inline-flex items-center gap-1 text-xs text-success">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              🟢 พอ
+                            </span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -323,109 +310,114 @@ export default function PreProductionPage() {
                   </TableBody>
                 </Table>
 
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
                   {hasShortage ? (
+                    <p className="text-sm text-danger">
+                      วัตถุดิบไม่พอรวม {totalShortage.toLocaleString()} หน่วยตามหน่วยวัสดุ ระบบล็อกปุ่มสั่งเริ่มผลิตอัตโนมัติ
+                    </p>
+                  ) : (
+                    <p className="text-sm text-success">วัตถุดิบครบ ระบบอนุญาตให้สั่งเริ่มผลิตได้</p>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <Button
+                    className="flex-1 bg-success text-success-foreground hover:bg-success/90"
+                    disabled={hasShortage}
+                    onClick={() => setShowStartDialog(true)}
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    สั่งเริ่มผลิต
+                  </Button>
+
+                  {hasShortage && (
                     <Button
                       className="flex-1 bg-warning text-warning-foreground hover:bg-warning/90"
-                      onClick={handleNotifyPurchase}
+                      onClick={() => setShowPurchaseDialog(true)}
                     >
                       <ShoppingCart className="mr-2 h-4 w-4" />
-                      แจ้งเตือนจัดซื้อ
-                    </Button>
-                  ) : (
-                    <Button
-                      className="flex-1 bg-success text-success-foreground hover:bg-success/90"
-                      onClick={handleStartProduction}
-                    >
-                      <Play className="mr-2 h-4 w-4" />
-                      เริ่มการผลิต
+                      สร้างใบขอซื้อด่วน
                     </Button>
                   )}
                 </div>
-              </div>
-            ) : (
-              <div className="flex h-64 flex-col items-center justify-center text-muted-foreground">
-                <Package className="mb-3 h-12 w-12 opacity-50" />
-                <p className="text-center">เลือกใบสั่งผลิตจากรายการทางซ้าย</p>
-                <p className="text-center text-sm">เพื่อตรวจสอบวัตถุดิบ</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Start Production Confirmation Dialog */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <Dialog open={showStartDialog} onOpenChange={setShowStartDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-success" />
-              ยืนยันการเริ่มผลิต
+              ยืนยันเริ่มการผลิต
             </DialogTitle>
             <DialogDescription>
-              คุณต้องการเริ่มการผลิตสำหรับ {selectedOrder?.id} - {selectedOrder?.productName} หรือไม่?
+              ยืนยันสั่งเริ่มผลิตสำหรับ {selectedOrder?.id} และส่งคำสั่งเข้าไลน์การผลิต
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg bg-muted/30 p-4">
-            <p className="text-sm">
-              <span className="text-muted-foreground">จำนวน:</span>{" "}
-              <span className="font-medium">{selectedOrder?.quantity.toLocaleString()} ชิ้น</span>
-            </p>
-            <p className="text-sm">
-              <span className="text-muted-foreground">กำหนดส่ง:</span>{" "}
-              <span className="font-medium">{selectedOrder?.dueDate}</span>
-            </p>
-          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+            <Button variant="outline" onClick={() => setShowStartDialog(false)}>
               ยกเลิก
             </Button>
             <Button className="bg-success text-success-foreground hover:bg-success/90" onClick={handleConfirmStart}>
-              <Play className="mr-2 h-4 w-4" />
-              ยืนยันเริ่มผลิต
+              ยืนยันสั่งผลิต
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Notify Purchase Dialog */}
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5 text-warning" />
-              แจ้งเตือนฝ่ายจัดซื้อ
+              สร้างใบขอซื้อด่วน
             </DialogTitle>
             <DialogDescription>
-              ระบบจะส่งการแจ้งเตือนไปยังฝ่ายจัดซื้อเพื่อจัดหาวัตถุดิบที่ขาด
+              รายการขาดจะถูกส่งแจ้งเตือนไปยังฝ่ายจัดซื้อทันที
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">รายการที่ต้องจัดซื้อ:</p>
-            {shortageItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between rounded-lg bg-danger/10 px-3 py-2">
-                <span className="text-sm">{item.materialName}</span>
-                <span className="font-mono text-sm font-bold text-danger">
-                  {item.shortage.toLocaleString()} {item.unit}
+            {shortageRows.map((row) => (
+              <div key={row.materialCode} className="flex items-center justify-between rounded-lg bg-danger/10 px-3 py-2">
+                <span className="text-sm">{row.materialName}</span>
+                <span className="font-mono text-sm font-semibold text-danger">
+                  ขาด {row.shortage.toLocaleString()} {row.unit}
                 </span>
               </div>
             ))}
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPurchaseDialog(false)}>
               ยกเลิก
             </Button>
-            <Button 
+            <Button
               className="bg-warning text-warning-foreground hover:bg-warning/90"
               onClick={() => {
                 setShowPurchaseDialog(false)
-                // In real app, send notification
+                setShowPurchaseSentDialog(true)
               }}
             >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              ส่งการแจ้งเตือน
+              ส่งใบขอซื้อด่วน
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPurchaseSentDialog} onOpenChange={setShowPurchaseSentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ส่งคำขอสำเร็จ</DialogTitle>
+            <DialogDescription>
+              ระบบส่งแจ้งเตือนไปฝ่ายจัดซื้อแล้ว พร้อมแนบรายละเอียดวัตถุดิบขาดสำหรับ {selectedOrder?.id}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowPurchaseSentDialog(false)}>ปิด</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
